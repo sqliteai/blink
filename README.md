@@ -587,8 +587,8 @@ The SIMD paths are NEON on Arm and, on x86-64, SSE2 or AVX2 + FMA, chosen at
 run time (`BLINK_X86_SIMD=scalar|sse2|avx2` forces one; `blink_backend()`
 reports it). The x86 paths are verified under emulation: every level passes
 the C suite, sanitizers included, and agrees with the float64 reference to
-6e-7 on a trained model. Their speed on real x86 hardware is not measured yet
-([details](docs/RESULTS.md#x86-64)). `bash scripts/x86-docker-test.sh` runs
+6e-7 on a trained model. On a GitHub x86 runner AVX2 is 2.7× and SSE2 2.1×
+the scalar loop ([details](docs/RESULTS.md#x86-64)). `bash scripts/x86-docker-test.sh` runs
 all of that in a linux/amd64 container from any machine with Docker.
 
 ---

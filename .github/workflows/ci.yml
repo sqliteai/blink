@@ -118,8 +118,12 @@ jobs:
           pip install numpy pytest
           pip install torch --index-url https://download.pytorch.org/whl/cpu
 
+      # The shared library for the ctypes binding, and the synthesised
+      # containers the untrained control below scores.
       - name: build the shared library
-        run: make
+        run: |
+          make
+          make fixtures
 
       - name: parity and harness tests
         run: PYTHONPATH=python python -m pytest tests/python -q

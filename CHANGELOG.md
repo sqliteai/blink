@@ -125,8 +125,9 @@ First release.
   at chance in every run; `selection` needs binding between two positions
   inside the state, which the architecture does not yet provide.
 - blink-small is worse than blink-tiny on every corpus measured.
-- The x86-64 SIMD paths have been verified only under emulation; their speed
-  on real x86 hardware is not measured yet. AVX-512 and VNNI are not used.
+- The x86-64 SIMD paths were verified for correctness under emulation and
+  timed only on shared GitHub runners (AVX2 2.7× the scalar loop), not on a
+  dedicated x86 machine. AVX-512 and VNNI are not used.
 - The option list must be complete before scoring, and a probability is
   conditional on the options given.
 

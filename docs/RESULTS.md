@@ -264,11 +264,23 @@ relative to each other within a row, and not even that for AVX2:
 | blink-small | `cached_state` | 512 | 1,447 µs | 492 µs | 617 µs | 462 µs | 733 µs |
 
 SSE2 is 2.0–2.9× the scalar loop. AVX2 comes out slower than SSE2 here only
-because Rosetta executes each 256-bit instruction as 128-bit Arm ones, so
-this says nothing about AVX2 on an x86 core. It is still the default where
-the CPU has it, as it would be on any x86 library, and the `x86 SIMD levels`
-step in CI prints both levels' latency on GitHub's x86 runners, which is the
-first real measurement of it.
+because Rosetta executes each 256-bit instruction as 128-bit Arm ones.
+
+On real x86 hardware it is the other way round. The `x86 SIMD levels` step in
+CI times each level on a GitHub-hosted `ubuntu-latest` runner, built with
+GCC. That is a shared virtual machine whose CPU model the run does not record,
+so the absolute numbers are indicative, but the ratios within the run are
+meaningful. blink-tiny, 256-byte state, 4 options, p50 (first run, commit
+`a1bdc6c`):
+
+| path | scalar | SSE2 | AVX2 + FMA |
+|---|---:|---:|---:|
+| `decide` | 2,075 µs | 979 µs | 760 µs |
+| `cached_state` | 245 µs | 117 µs | 90 µs |
+| `new_menu` | 645 µs | 292 µs | 222 µs |
+
+SSE2 is 2.1–2.2× the scalar loop and AVX2 2.7×, so AVX2 is the right default
+where the CPU has it.
 
 ### Context
 
@@ -738,9 +750,9 @@ In the order I would do them.
    quantization-aware training for the activations, which could let it
    become the default.
 8. **An x86-64 SIMD path.** *Done* (§2, *x86-64*): SSE2 always, AVX2 + FMA
-   when the CPU has it, for both W8A32 and W8A8. What is left is measuring
-   it on real x86 hardware; the only runs so far are under emulation, where
-   AVX2 cannot be timed. AVX-512 and VNNI are not implemented.
+   when the CPU has it, for both W8A32 and W8A8. AVX2 is 2.7× the scalar
+   loop on a GitHub x86 runner. What is left is a benchmark on a dedicated x86
+   machine, and AVX-512 and VNNI, which are not implemented.
 9. **A Jev comparison, if TypeSafe publishes enough to make one honest.** At
    present nothing here is measured against a Jev endpoint, and this page says
    so wherever the subject comes up.
