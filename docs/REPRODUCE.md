@@ -140,10 +140,10 @@ PYTHONPATH=python .venv/bin/python scripts/report_results.py --write
 
 ## External baselines
 
-The speed and memory comparison in the README measures jevlike on the same
-machine as `make bench`, one CPU thread, batch one. It needs jevlike installed
-in the environment and the checkpoints `scripts/experiments/queue_external.sh`
-trains:
+The speed and memory comparison in RESULTS.md (*Comparison with other
+systems*) measures jevlike on the same machine as `make bench`, one CPU
+thread, batch one. It needs jevlike installed in the environment and the
+checkpoints `scripts/experiments/queue_external.sh` trains:
 
 ```bash
 .venv/bin/python eval/bench_external.py artifacts/external/external-w288-s7.pt \

@@ -35,8 +35,8 @@ repository as external baselines: [jevlike](https://github.com/vinnylarouge/jevl
 a small PyTorch model trained from scratch, and
 [SemIf](https://github.com/TheoLeeCJ/SemIf), which reads option logits out of
 a frozen open LLM (Qwen3.5-4B and smaller). The measured comparison, speed and
-memory included, is in the [README](../README.md#how-it-compares) and in
-[RESULTS.md](RESULTS.md#head-to-head-with-jevlike).
+memory included, is in
+[RESULTS.md](RESULTS.md#comparison-with-other-systems).
 
 |  | jevlike | SemIf | Blink |
 |---|---|---|---|
@@ -170,7 +170,7 @@ supports or contradicts *"the order for Leila\'s keypad was cancelled on
 Tuesday morning"* is exactly that comparison, over a pair of sentences that
 differ in one verb. Without a path for it, half of all training runs failed to
 find one and collapsed the two answers together; see
-[RESULTS.md](RESULTS.md#stabilising-judgment-with-question-to-state-attention).
+[RESULTS.md](RESULTS.md#judgment-and-question-to-state-attention).
 
 So the question gets one attention layer over the state, after its own blocks.
 The direction is the whole design: because the state attends to nothing, its
@@ -269,7 +269,7 @@ the question changes.
 
 **The measurement does not support this argument, and the argument does not
 get to stand in for one.** A three-seed ablation
-([RESULTS.md](RESULTS.md#the-film-ablation-undecided)) is *undecided* on every
+([RESULTS.md](RESULTS.md#the-film-ablation-still-undecided)) is *undecided* on every
 slice: the spread between seeds within either arm is larger than the gap
 between the arms. Two earlier single-seed runs appeared to show FiLM rescuing
 first `judgment` and then `comparison`; both were noise, and both were reported

@@ -292,6 +292,90 @@ parameter model is doing something a 7.8-million-parameter model cannot. It is
 here to say what changes when the model is small enough to embed, not to claim
 a win.
 
+### Comparison with other systems
+
+
+Two open projects expose the same interface as Blink:
+[jevlike](https://github.com/vinnylarouge/jevlike), a small PyTorch model
+trained from scratch, and [SemIf](https://github.com/TheoLeeCJ/SemIf), which
+reads option logits out of a frozen 4B LLM. Blink is measured against both.
+
+**Speed.** One decision over a 256-byte state, a question and four options,
+batch one. Blink and jevlike were measured on the same machine, one CPU thread
+each; the SemIf figures are the ones it publishes, on GPUs.
+
+| system | hardware | fresh decision, p50 | decisions/s, fresh | decisions/s, state reused |
+|---|---|---:|---:|---:|
+| **blink-tiny** (C99, int8) | 1 CPU core, Apple M5 Pro | 406 µs | 2,448 | 18,211 |
+| **blink-tiny**, Accelerate backend | 1 CPU core + matrix unit, Apple M5 Pro | **172 µs** | **5,808** | **31,290** |
+| **blink-tiny**, W8A8 backend (SDOT) | 1 CPU core, Apple M5 Pro | 221 µs | 4,460 | 29,481 |
+| jevlike, width 288 (matched capacity) | 1 CPU core, Apple M5 Pro, PyTorch | 188 µs | 5,275 | no state cache |
+| jevlike, width 64 (default) | 1 CPU core, Apple M5 Pro, PyTorch | 96 µs | 10,321 | no state cache |
+| SemIf, Qwen3.5-4B BF16 | RTX 3090 | ~430 ms | 2.33 | 20.03 |
+| SemIf, Qwen3.5-4B BF16, MLX | Apple M5 Max GPU | ~610 ms | 1.63 | 17.24 |
+
+**Memory.**
+
+| system | parameters | weights | process peak RSS | allocation while scoring |
+|---|---:|---|---:|---|
+| **blink-tiny** | 407k | **452 KiB** int8, mapped read-only, shared across sessions | **2.5 MiB** | **none** (260 KiB arena per session, sized up front) |
+| **blink-tiny**, Accelerate backend | 407k | 452 KiB int8 mapped, plus a 352 KiB fp32 copy of the projections | 7.0 MiB | inside Accelerate: 16 per decision (335 KiB arena) |
+| **blink-tiny**, W8A8 backend (SDOT) | 407k | **452 KiB** int8, mapped read-only, no copy | 2.6 MiB | **none** (261 KiB arena) |
+| jevlike, width 288 | 398k | 1.5 MiB fp32 | 199 MiB | PyTorch allocator |
+| jevlike, width 64 | 45k | 177 KiB fp32 | 196 MiB | PyTorch allocator |
+| SemIf, Qwen3.5-4B BF16, MLX | 4B | 7.83 GiB resident | 9.31 GiB | framework allocator |
+| SemIf, Qwen3.5-4B Q4, MLX | 4B | — | 2.82 GiB | framework allocator |
+
+How to read the two tables:
+
+- **On a fresh decision the default build is slower than jevlike.** jevlike
+  is Python, but its arithmetic runs in PyTorch's native kernels, which on
+  Apple silicon use the CPU's matrix unit. Its model is also a byte embedding
+  and one attention read, with no encoder in between. Blink spends that time
+  on the encoder, and it shows in the accuracy below: at matched capacity it
+  is ten points ahead on top-1 and seven times better calibrated.
+- **The [Accelerate backend](#the-accelerate-backend) closes that gap.**
+  With the projections on the same matrix unit, blink-tiny is faster than
+  jevlike on a fresh decision too (172 µs against 188 µs), still on one
+  thread. The [W8A8 backend](#the-w8a8-backend) gets to 221 µs
+  without allocating and without a framework.
+- **Blink is faster once the state is encoded.** Encoding a state once and
+  asking it many questions is the common case in software, and the reuse is
+  exact. Blink then answers 3.5× faster than jevlike at matched capacity, and
+  5.9× with the Accelerate backend.
+- **Memory is where the runtimes differ most.** jevlike's weights are small,
+  but a PyTorch process needs about 80 times Blink's whole footprint. SemIf
+  needs gigabytes and a GPU, and on a fresh decision it is about a thousand
+  times slower.
+- A frozen 4B model reads language that Blink cannot. These tables compare
+  cost, not capability.
+
+Blink's figures come from `make bench` (`results/bench-latency.jsonl`, and
+`results/bench-latency-accelerate.jsonl` and `results/bench-latency-w8a8.jsonl`
+for the two optional backends) and from
+`/usr/bin/time -l` on `blink` answering one decision. jevlike's come
+from [eval/bench_external.py](../eval/bench_external.py)
+(`results/bench-external-w*.json`), on the checkpoints trained by
+`scripts/experiments/queue_external.sh`. SemIf's are quoted from its published
+RTX 3090 and MLX results; the fresh latency is the inverse of its fresh rate.
+
+**Accuracy**, measured head to head: same corpus, same harness, three runs each
+([details](#head-to-head-with-jevlike); measured on Blink's
+previous option head, the current one scores 0.6334 ± 0.0171):
+
+| | parameters | top-1 | ECE |
+|---|---:|---|---|
+| **blink-tiny** | 407k | **0.6064 ± 0.0149** | **0.0216 ± 0.0036** |
+| jevlike, matched capacity | 398k | 0.5004 ± 0.0397 | 0.1514 ± 0.0420 |
+
+On SemIf's 256-row WANLI subset, rebuilt from the identifiers it publishes, a
+frozen Qwen3.5-4B scores 0.637 balanced accuracy and blink-tiny scores
+0.4393 ± 0.0342, with one ten-thousandth of the parameters. Blink does not
+compete on open-domain language, and [External corpora](#external-corpora)
+says so with the controls next to it. On jevlike's Wikispeedia next-click
+task the two are level (0.306 against 0.313), and neither reads the article:
+the task reduces to matching titles.
+
 ---
 
 ## 3. Accuracy

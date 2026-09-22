@@ -108,8 +108,8 @@ First release.
   out, and each backend.
 - `scripts/x86-docker-test.sh`: the x86-64 tests, parity and timings in a
   linux/amd64 container, for machines that are not x86-64.
-- Latency and memory benchmarks (`make bench`) and comparisons with two
-  external systems, documented in the README and `docs/RESULTS.md`.
+- Latency and memory benchmarks (`make bench`), and comparisons with two
+  external systems in `docs/RESULTS.md`.
 
 **Licence**
 

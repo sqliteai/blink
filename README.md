@@ -3,6 +3,16 @@
 **A one-pass typed-decision model with an embeddable C runtime that also
 builds to WebAssembly.**
 
+---
+TypeSafe released [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev),
+a closed model in a class they call *System One Models*: fast structured
+decisions for software rather than conversation, with calibrated confidence and
+no output tokens to pay for. Blink puts that interface behind a C library you
+can link into a service, a daemon or a device, or load as WebAssembly in a web
+page.
+
+---
+
 Blink answers questions of the form *"given this state and this criterion,
 which of these options?"* in a single forward pass. There is no token
 generation, no decoding loop, no JSON to parse and nothing to repair: the
@@ -37,109 +47,45 @@ inference, binding a name to the right sentence — it is at or a little above
 chance, and a frozen 4B model is far ahead. Its confidence is calibrated
 enough to branch on: answer when it is sure, escalate when it is not.
 
----
+## Performance
 
-## Why this exists
+blink-tiny on one core of an Apple M5 Pro: one decision over a 256-byte state,
+a question and four options, p50.
 
-TypeSafe released [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev),
-a closed model in a class they call *System One Models*: fast structured
-decisions for software rather than conversation, with calibrated confidence and
-no output tokens to pay for. Blink puts that interface behind a C library you
-can link into a service, a daemon or a device, or load as WebAssembly in a web
-page.
+| build | fresh decision | same state, new question | decisions/s, state reused |
+|---|---:|---:|---:|
+| default (C99, NEON) | 406 µs | 54 µs | 18,211 |
+| [W8A8](#w8a8-backend-sdot--i8mm) (int8 activations, SDOT) | 221 µs | 33 µs | 29,481 |
+| [Accelerate](#accelerate-backend-macos) (macOS) | 172 µs | 32 µs | 31,290 |
 
----
+A fresh decision encodes the state, the options and the question. Software
+usually asks several questions of the same state, and then only the question
+is encoded: the cached state is reused exactly, bit for bit. On x86-64 the
+AVX2 kernel does the same decision in 760 µs, and 90 µs with the state reused,
+on a GitHub-hosted runner.
 
-## How it compares
+**Memory. Nothing is allocated while scoring: not per decision, not per
+question, not per option.** All the working memory a session needs is one
+arena, sized before the session exists and placed wherever you choose, a static
+array or a stack buffer included, so Blink runs where `malloc` is unavailable
+or not allowed. This is checked, not assumed: `tests/c/check_no_malloc.sh`
+fails the build if the scoring code references any allocator.
 
-Two open projects expose the same interface:
-[jevlike](https://github.com/vinnylarouge/jevlike), a small PyTorch model
-trained from scratch, and [SemIf](https://github.com/TheoLeeCJ/SemIf), which
-reads option logits out of a frozen 4B LLM. Blink is measured against both.
+blink-tiny's weights are 452 KiB of int8, mapped read-only and shared by every
+session and every process that opens the same file. The arena is 260 KiB with
+the model's default limits and 22 KiB with the smallest. One decision from the
+command line peaks at 2.5 MiB of resident memory, the whole process included.
+The W8A8 build keeps the no-allocation guarantee; the Accelerate build gives it
+up, because the framework allocates inside its matrix products
+([details](#memory)).
 
-**Speed.** One decision over a 256-byte state, a question and four options,
-batch one. Blink and jevlike were measured on the same machine, one CPU thread
-each; the SemIf figures are the ones it publishes, on GPUs.
-
-| system | hardware | fresh decision, p50 | decisions/s, fresh | decisions/s, state reused |
-|---|---|---:|---:|---:|
-| **blink-tiny** (C99, int8) | 1 CPU core, Apple M5 Pro | 406 µs | 2,448 | 18,211 |
-| **blink-tiny**, Accelerate backend | 1 CPU core + matrix unit, Apple M5 Pro | **172 µs** | **5,808** | **31,290** |
-| **blink-tiny**, W8A8 backend (SDOT) | 1 CPU core, Apple M5 Pro | 221 µs | 4,460 | 29,481 |
-| jevlike, width 288 (matched capacity) | 1 CPU core, Apple M5 Pro, PyTorch | 188 µs | 5,275 | no state cache |
-| jevlike, width 64 (default) | 1 CPU core, Apple M5 Pro, PyTorch | 96 µs | 10,321 | no state cache |
-| SemIf, Qwen3.5-4B BF16 | RTX 3090 | ~430 ms | 2.33 | 20.03 |
-| SemIf, Qwen3.5-4B BF16, MLX | Apple M5 Max GPU | ~610 ms | 1.63 | 17.24 |
-
-**Memory.**
-
-| system | parameters | weights | process peak RSS | allocation while scoring |
-|---|---:|---|---:|---|
-| **blink-tiny** | 407k | **452 KiB** int8, mapped read-only, shared across sessions | **2.5 MiB** | **none** (260 KiB arena per session, sized up front) |
-| **blink-tiny**, Accelerate backend | 407k | 452 KiB int8 mapped, plus a 352 KiB fp32 copy of the projections | 7.0 MiB | inside Accelerate: 16 per decision (335 KiB arena) |
-| **blink-tiny**, W8A8 backend (SDOT) | 407k | **452 KiB** int8, mapped read-only, no copy | 2.6 MiB | **none** (261 KiB arena) |
-| jevlike, width 288 | 398k | 1.5 MiB fp32 | 199 MiB | PyTorch allocator |
-| jevlike, width 64 | 45k | 177 KiB fp32 | 196 MiB | PyTorch allocator |
-| SemIf, Qwen3.5-4B BF16, MLX | 4B | 7.83 GiB resident | 9.31 GiB | framework allocator |
-| SemIf, Qwen3.5-4B Q4, MLX | 4B | — | 2.82 GiB | framework allocator |
-
-How to read the two tables:
-
-- **On a fresh decision the default build is slower than jevlike.** jevlike
-  is Python, but its arithmetic runs in PyTorch's native kernels, which on
-  Apple silicon use the CPU's matrix unit. Its model is also a byte embedding
-  and one attention read, with no encoder in between. Blink spends that time
-  on the encoder, and it shows in the accuracy below: at matched capacity it
-  is ten points ahead on top-1 and seven times better calibrated.
-- **The [Accelerate backend](#accelerate-backend-macos) closes that gap.**
-  With the projections on the same matrix unit, blink-tiny is faster than
-  jevlike on a fresh decision too (172 µs against 188 µs), still on one
-  thread. The [W8A8 backend](#w8a8-backend-sdot--i8mm) gets to 221 µs
-  without allocating and without a framework.
-- **Blink is faster once the state is encoded.** Encoding a state once and
-  asking it many questions is the common case in software, and the reuse is
-  exact. Blink then answers 3.5× faster than jevlike at matched capacity, and
-  5.9× with the Accelerate backend.
-- **Memory is where the runtimes differ most.** jevlike's weights are small,
-  but a PyTorch process needs about 80 times Blink's whole footprint. SemIf
-  needs gigabytes and a GPU, and on a fresh decision it is about a thousand
-  times slower.
-- A frozen 4B model reads language that Blink cannot. These tables compare
-  cost, not capability.
-
-Blink's figures come from `make bench` (`results/bench-latency.jsonl`, and
-`results/bench-latency-accelerate.jsonl` and `results/bench-latency-w8a8.jsonl`
-for the two optional backends) and from
-`/usr/bin/time -l` on `blink` answering one decision. jevlike's come
-from [eval/bench_external.py](eval/bench_external.py)
-(`results/bench-external-w*.json`), on the checkpoints trained by
-`scripts/experiments/queue_external.sh`. SemIf's are quoted from its published
-RTX 3090 and MLX results; the fresh latency is the inverse of its fresh rate.
-
-**Accuracy**, measured head to head: same corpus, same harness, three runs each
-([details](docs/RESULTS.md#head-to-head-with-jevlike); measured on Blink's
-previous option head, the current one scores 0.6334 ± 0.0171):
-
-| | parameters | top-1 | ECE |
-|---|---:|---|---|
-| **blink-tiny** | 407k | **0.6064 ± 0.0149** | **0.0216 ± 0.0036** |
-| jevlike, matched capacity | 398k | 0.5004 ± 0.0397 | 0.1514 ± 0.0420 |
-
-On SemIf's 256-row WANLI subset, rebuilt from the identifiers it publishes, a
-frozen Qwen3.5-4B scores 0.637 balanced accuracy and blink-tiny scores
-0.4393 ± 0.0342, with one ten-thousandth of the parameters. Blink does not
-compete on open-domain language, and [docs/RESULTS.md](docs/RESULTS.md#external-corpora)
-says so with the controls next to it. On jevlike's Wikispeedia next-click
-task the two are level (0.306 against 0.313), and neither reads the article:
-the task reduces to matching titles.
-
-A larger preset, blink-small (7.9M parameters), exists and is **experimental**:
-it is worse than blink-tiny on every corpus measured and ten times slower to
+A larger preset, blink-small (7.9M parameters), is **experimental**: it is
+worse than blink-tiny on every corpus measured and about ten times slower to
 encode, so its containers are not shipped
 ([why](docs/RESULTS.md#5-what-does-not-work)).
 
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explains every design decision
-and the reason for it.
+All the benchmark tables, and a comparison with other systems that expose the
+same interface, are in [docs/RESULTS.md](docs/RESULTS.md#comparison-with-other-systems).
 
 ---
 
@@ -243,8 +189,7 @@ rationale in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md):
    blocks. A 512-byte state is 64 positions before any block executes.
 3. **State and question are encoded separately.** Reusing an encoded state is
    therefore *exact*, not approximate: `tests/c/test_session.c` checks it with
-   `memcmp`. A KV prefix cache in a frozen LLM is only approximate: SemIf's
-   changed 5–6 of 777 argmaxes under BF16.
+   `memcmp`.
 4. **Queries are conditioned on the question.** An option query built from
    the option text alone lets the question reach the score by one indirect
    route: the keys and values it adds to the shared context. Blink additionally
@@ -252,13 +197,14 @@ rationale in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md):
    two a direct place to meet. A three-run ablation finds **no demonstrated
    effect** at this scale — between-seed spread exceeds the gap between the
    arms — so this is a motivated design choice, not a measured win. The table
-   is in [docs/RESULTS.md](docs/RESULTS.md#the-film-ablation-undecided).
+   is in [docs/RESULTS.md](docs/RESULTS.md#the-film-ablation-still-undecided).
 
 ---
 
 ## Memory
 
-Three numbers that live in three different places:
+**Blink allocates no memory while scoring.** Its memory comes in three parts,
+and the third is zero:
 
 - **Weights** — mapped read-only, never copied, shared by every process and
   every session.
@@ -266,8 +212,8 @@ Three numbers that live in three different places:
   model and the limits you declare. `blink_session_size` tells you the number
   and `blink_session_init` places the session in a buffer you own: a static
   array, a stack frame, a pool.
-- **Scoring** — nothing. `tests/c/check_no_malloc.sh` asserts that
-  `blink_runtime.o` and `blink_kernels.o` reference no allocator symbol at all.
+- **Scoring** — **no allocation at all.** `tests/c/check_no_malloc.sh` asserts
+  that `blink_runtime.o` and `blink_kernels.o` reference no allocator symbol.
 
 `examples/embed_static.c` is the whole pattern in 100 lines with no heap.
 
