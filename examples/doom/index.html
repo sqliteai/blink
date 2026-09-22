@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blink plays Doom</title>
+<!--
+  Blink plays ViZDoom's Basic and Predict Position in the browser: the game
+  is doom.mjs, the renderer render.mjs, and every decision one blink_score
+  call in build/wasm/blink.wasm. Serve the repository root and open:
+
+    make wasm && python3 -m http.server 8000
+    open http://localhost:8000/examples/doom/
+
+  Query parameters: model, wasm, scenario (basic | predict_position),
+  skip (ticks per action), seed.
+
+  SPDX-License-Identifier: Apache-2.0
+-->
+<style>
+  :root {
+    --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6a64;
+    --line: #e2e0d8; --bar: #3f7cff; --pick: #1f9d55; --screen: #000;
+    --win: #1f9d55; --lose: #c2410c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151614; --panel: #1e1f1c; --ink: #ecebe6; --muted: #9a998f;
+      --line: #2f302b; --bar: #6b9bff; --pick: #4cc47c; --win: #4cc47c; --lose: #fb923c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 1040px; margin: 0 auto; padding: 24px 16px 40px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0 0 16px; max-width: 760px; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+  .screen { position: relative; }
+  canvas {
+    width: 100%; aspect-ratio: 4 / 3; display: block; border-radius: 10px; background: var(--screen);
+    image-rendering: pixelated; image-rendering: crisp-edges;
+  }
+  .banner {
+    position: absolute; left: 0; right: 0; top: 42%; text-align: center; pointer-events: none;
+    font: 700 26px/1.2 ui-sans-serif, system-ui, sans-serif; color: #fff;
+    text-shadow: 0 2px 0 #000, 0 0 12px #000; letter-spacing: 0.02em;
+  }
+  .tabs { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-bottom: 12px; }
+  .tabs button { border: 0; border-radius: 0; padding: 7px 14px; }
+  .tabs button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .panel + .panel { margin-top: 12px; }
+  .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 6px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 12px; color: var(--muted); }
+  .state { font: 12.5px/1.5 ui-monospace, "SF Mono", Menlo, monospace; min-height: 7.5em; overflow-wrap: anywhere; }
+  .row { display: grid; grid-template-columns: 92px 1fr 52px; gap: 8px; align-items: center; margin: 5px 0; font-variant-numeric: tabular-nums; }
+  .track { height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; }
+  .fill { height: 100%; background: var(--bar); width: 0; transition: width 60ms linear; }
+  .row.pick { font-weight: 600; }
+  .row.pick .fill { background: var(--pick); }
+  .row .p { text-align: right; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+  button {
+    font: inherit; padding: 6px 12px; border-radius: 7px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  }
+  button.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  select { font: inherit; padding: 5px 8px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+  input[type=range] { flex: 1; min-width: 110px; }
+  label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; color: var(--muted); }
+  .meta { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .log { font-size: 13px; font-variant-numeric: tabular-nums; max-height: 9.5em; overflow: auto; }
+  .log div { display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); padding: 2px 0; }
+  .win { color: var(--win); } .lose { color: var(--lose); }
+  .error { color: #d33; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Blink plays Doom</h1>
+  <p class="sub">ViZDoom's two shooting scenarios, reimplemented in JavaScript. The model never sees pixels: every decision is one <code>blink_score</code> call in WebAssembly over the text on the right (the monster's label box in the last observations, the view angle, the ammo) and four actions.</p>
+  <div class="tabs" role="group" aria-label="Scenario">
+    <button id="tab-basic" data-scenario="basic">Basic · aim, then fire</button>
+    <button id="tab-predict_position" data-scenario="predict_position">Predict Position · lead a moving target</button>
+  </div>
+  <div class="layout">
+    <div>
+      <div class="screen">
+        <canvas id="screen" width="320" height="240"></canvas>
+        <div id="banner" class="banner"></div>
+      </div>
+      <div class="controls">
+        <button id="toggle" class="primary">Pause</button>
+        <button id="step">Step</button>
+        <button id="reset">New episode</button>
+        <select id="policy" aria-label="Policy">
+          <option value="blink">Blink decides</option>
+          <option value="teacher">Teacher decides</option>
+          <option value="random">Random</option>
+        </select>
+        <select id="skip" aria-label="Ticks per action">
+          <option value="4">4 ticks / action</option>
+          <option value="8">8 ticks / action (OOD)</option>
+        </select>
+        <label class="check"><input id="box" type="checkbox" checked> label box</label>
+      </div>
+      <div class="controls">
+        <label for="speed" class="label" style="margin:0">Speed</label>
+        <input id="speed" type="range" min="0.25" max="4" step="0.25" value="1">
+        <span id="speed-value" class="meta" style="margin:0">1×</span>
+      </div>
+    </div>
+    <div>
+      <div class="panel">
+        <div class="stats">
+          <div class="stat"><b id="kills">0</b><span>kills</span></div>
+          <div class="stat"><b id="episodes">0</b><span>episodes</span></div>
+          <div class="stat"><b id="rate">–</b><span>success</span></div>
+        </div>
+        <div id="log" class="log" style="margin-top:10px"></div>
+      </div>
+      <div class="panel">
+        <div class="label">State sent to the model</div>
+        <div id="state" class="state"></div>
+      </div>
+      <div class="panel">
+        <div class="label">Question</div>
+        <div id="question" style="font-size:14px"></div>
+        <div class="label" style="margin-top:10px">Probabilities</div>
+        <div id="bars"></div>
+        <div id="timing" class="meta"></div>
+      </div>
+      <div id="meta" class="meta"></div>
+    </div>
+  </div>
+</main>
+<script type="module">
+import { loadBlink } from "../../wasm/blink.mjs";
+import { ACTIONS, Doom, OPTIONS, QUESTION, rng } from "./doom.mjs";
+import { Renderer } from "./render.mjs";
+
+const params = new URLSearchParams(location.search);
+const MODEL = params.get("model") ?? "../../artifacts/blink-tiny-doom-s7.blink";
+const WASM = params.get("wasm") ?? "../../build/wasm/blink.wasm";
+const TICK_MS = 1000 / 35;                        /* Doom runs at 35 ticks a second */
+
+const $ = (id) => document.getElementById(id);
+const renderer = new Renderer($("screen"));
+const random = rng(Date.now() >>> 0);
+
+let session = null, ready = false, scenario = params.get("scenario") ?? "basic";
+let seed = Number(params.get("seed") ?? 1 + Math.floor(random() * 1e6));
+let game, ticker = null, running = true, pause = 0, last = 0, clock = 0;
+const tally = { basic: { kills: 0, episodes: 0 }, predict_position: { kills: 0, episodes: 0 } };
+if (params.get("skip")) $("skip").value = params.get("skip");
+
+$("question").textContent = QUESTION;
+
+function buildBars() {
+  $("bars").innerHTML = OPTIONS[scenario].map((o, i) =>
+    `<div class="row" id="row-${i}"><span>${o}</span><div class="track"><div class="fill" id="fill-${i}"></div></div><span class="p" id="p-${i}"></span></div>`).join("");
+  for (const b of document.querySelectorAll(".tabs button")) b.setAttribute("aria-pressed", b.dataset.scenario === scenario);
+  if (session) session.setMenu(OPTIONS[scenario]);   /* encoded once per scenario */
+}
+
+function newGame() {
+  const skip = Number($("skip").value);
+  game = new Doom({ scenario, seed: seed++, frameSkip: skip, maxSteps: skip === 8 ? 38 : 75 });
+  ticker = null;
+  pause = 0;
+  $("banner").textContent = "";
+  renderer.draw(game, { showBox: $("box").checked });
+  showState(game.describe());
+}
+
+function showState(text) { $("state").textContent = text; }
+
+function decide() {
+  const text = game.describe();
+  showState(text);
+  const policy = $("policy").value;
+  let probabilities = null, argmax = -1, ms = 0;
+  if (session) {
+    const t0 = performance.now();
+    session.setState(text);
+    const r = session.score(QUESTION);
+    ms = performance.now() - t0;
+    probabilities = r.probabilities;
+    argmax = r.argmax;
+    $("timing").textContent = `blink_state_set + blink_score: ${ms.toFixed(2)} ms · confidence ${r.confidence.toFixed(3)} · margin ${r.margin.toFixed(3)}`;
+  }
+  const action = policy === "blink" && session ? ACTIONS[argmax]
+    : policy === "teacher" ? game.teacher() : ACTIONS[Math.floor(random() * 4)];
+  ACTIONS.forEach((a, i) => {
+    const p = probabilities ? probabilities[i] : 0;
+    $(`fill-${i}`).style.width = `${(p * 100).toFixed(1)}%`;
+    $(`p-${i}`).textContent = probabilities ? p.toFixed(3) : "";
+    $(`row-${i}`).classList.toggle("pick", a === action);
+  });
+  return action;
+}
+
+function finish() {
+  const t = tally[scenario];
+  ++t.episodes;
+  if (game.success) ++t.kills;
+  $("banner").innerHTML = game.success
+    ? `Monster down · ${(game.ticks / 35).toFixed(2)} s`
+    : game.outcome === "timeout" ? "Out of time" : "Out of decisions";
+  const row = document.createElement("div");
+  const who = $("policy").value;
+  row.innerHTML = `<span>${scenario === "basic" ? "Basic" : "Predict"} #${game.seed} · ${who}</span>` +
+    `<span class="${game.success ? "win" : "lose"}">${game.success ? `kill in ${game.ticks} ticks` : game.outcome}</span>`;
+  $("log").prepend(row);
+  updateTally();
+  pause = 45;                                      /* ticks of aftermath before the next episode */
+}
+
+function updateTally() {
+  const t = tally[scenario];
+  $("kills").textContent = t.kills;
+  $("episodes").textContent = t.episodes;
+  $("rate").textContent = t.episodes ? `${Math.round(100 * t.kills / t.episodes)}%` : "–";
+}
+
+/* One Doom tick: start a decision if none is running, then advance it. */
+function advance() {
+  if (!ready) return;                              /* the model is still loading */
+  if (pause > 0) {
+    game.idle();
+    if (--pause === 0) newGame();
+    return;
+  }
+  if (!ticker) ticker = game.stepTicks(decide());
+  if (ticker.next().done) {
+    ticker = null;
+    if (game.done) finish();
+    else advance();                                /* the decision ended without a tick */
+  }
+}
+
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (!running) { last = now; return; }
+  clock += Math.min(250, now - last) * Number($("speed").value);
+  last = now;
+  let steps = 0;
+  while (clock >= TICK_MS && steps++ < 40) {
+    clock -= TICK_MS;
+    advance();
+  }
+  renderer.draw(game, { showBox: $("box").checked });
+}
+
+$("toggle").onclick = () => {
+  running = !running;
+  $("toggle").textContent = running ? "Pause" : "Play";
+};
+$("step").onclick = () => {
+  running = false;
+  $("toggle").textContent = "Play";
+  /* One whole decision. */
+  if (pause > 0) { pause = 1; advance(); }
+  else {
+    const start = game.steps;
+    do advance(); while (game.steps === start && pause === 0);
+  }
+  renderer.draw(game, { showBox: $("box").checked });
+};
+$("reset").onclick = () => newGame();
+$("skip").onchange = () => newGame();
+$("box").onchange = () => renderer.draw(game, { showBox: $("box").checked });
+$("speed").oninput = () => { $("speed-value").textContent = `${$("speed").value}×`; };
+for (const b of document.querySelectorAll(".tabs button")) {
+  b.onclick = () => {
+    scenario = b.dataset.scenario;
+    buildBars();
+    updateTally();
+    newGame();
+  };
+}
+
+buildBars();
+newGame();
+requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); });
+
+try {
+  const [blink, bytes] = await Promise.all([
+    loadBlink(WASM),
+    fetch(MODEL).then((r) => {
+      if (!r.ok) throw new Error(`${MODEL}: HTTP ${r.status}`);
+      return r.arrayBuffer();
+    }),
+  ]);
+  const model = blink.openModel(new Uint8Array(bytes));
+  const info = model.info();
+  session = model.createSession({ maxOptions: 4 });
+  session.setMenu(OPTIONS[scenario]);
+  $("meta").textContent = `${MODEL.split("/").pop()} · ${info.name} · ${info.parameters.toLocaleString()} parameters · ` +
+    `${(bytes.byteLength / 1024).toFixed(0)} KB weights · blink ${blink.version} (wasm)`;
+} catch (e) {
+  $("policy").value = "teacher";
+  $("meta").innerHTML = `<div class="error">${e.message}\nThe teacher is playing instead.</div>`;
+}
+ready = true;
+</script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+{
+  "model": {
+    "path": "artifacts/blink-tiny-wikispeedia-s17.blink",
+    "sha256": "b87d13abd820c7d8d75f160f781ba9eb42c268991fbeda7a3f912aee0298938e",
+    "name": "blink-tiny",
+    "parameters": 434049,
+    "weights_bytes": 492032,
+    "temperature": 3.080155611038208,
+    "max_state": 608,
+    "max_question": 164,
+    "max_option": 84
+  },
+  "data": {
+    "path": "data/wikispeedia/blink/test.jsonl",
+    "sha256": "f3a55f2e4294cef058fab7882ac95e76c106ad8c15fa4588b4fa600e2d1390a2",
+    "rows": 4373,
+    "groups": 314,
+    "clipped_rows": 0,
+    "clipping_note": "inputs longer than the model limits are truncated by the harness; the runtime itself refuses them"
+  },
+  "session_arena_bytes": 651072,
+  "metrics": {
+    "rows": 4373,
+    "top1": 0.2867596615595701,
+    "top3": 0.4701577864166476,
+    "balanced_accuracy": 0.29313748615498364,
+    "macro_f1": 0.28946493772948645,
+    "nll": 2.8204948399311376,
+    "brier": 0.8494425806724557,
+    "ece": 0.03409648164271925,
+    "mce": 0.11876672574843478,
+    "mean_confidence": 0.25587122964042563,
+    "mean_entropy": 2.749650874574452,
+    "uniform_baseline": 0.03617956399064065,
+    "majority_baseline": 0.03750285844957695,
+    "calibration_bins": [
+      {
+        "bin": 0,
+        "lower": 0.0,
+        "upper": 0.06666666666666667,
+        "count": 112,
+        "mean_confidence": 0.056932340775217326,
+        "accuracy": 0.05357142857142857
+      },
+      {
+        "bin": 1,
+        "lower": 0.06666666666666667,
+        "upper": 0.13333333333333333,
+        "count": 1060,
+        "mean_confidence": 0.10197178117649736,
+        "accuracy": 0.11037735849056604
+      },
+      {
+        "bin": 2,
+        "lower": 0.13333333333333333,
+        "upper": 0.2,
+        "count": 998,
+        "mean_confidence": 0.1655052423566759,
+        "accuracy": 0.17935871743486975
+      },
+      {
+        "bin": 3,
+        "lower": 0.2,
+        "upper": 0.26666666666666666,
+        "count": 657,
+        "mean_confidence": 0.2318738789001375,
+        "accuracy": 0.2374429223744292
+      },
+      {
+        "bin": 4,
+        "lower": 0.26666666666666666,
+        "upper": 0.3333333333333333,
+        "count": 484,
+        "mean_confidence": 0.29788090990594596,
+        "accuracy": 0.3987603305785124
+      },
+      {
+        "bin": 5,
+        "lower": 0.3333333333333333,
+        "upper": 0.4,
+        "count": 304,
+        "mean_confidence": 0.364843520580938,
+        "accuracy": 0.4309210526315789
+      },
+      {
+        "bin": 6,
+        "lower": 0.4,
+        "upper": 0.4666666666666667,
+        "count": 261,
+        "mean_confidence": 0.4291259945580786,
+        "accuracy": 0.5478927203065134
+      },
+      {
+        "bin": 7,
+        "lower": 0.4666666666666667,
+        "upper": 0.5333333333333333,
+        "count": 127,
+        "mean_confidence": 0.49333788959060126,
+        "accuracy": 0.5275590551181102
+      },
+      {
+        "bin": 8,
+        "lower": 0.5333333333333333,
+        "upper": 0.6,
+        "count": 83,
+        "mean_confidence": 0.5634724188999958,
+        "accuracy": 0.5903614457831325
+      },
+      {
+        "bin": 9,
+        "lower": 0.6,
+        "upper": 0.6666666666666666,
+        "count": 84,
+        "mean_confidence": 0.6359094629685084,
+        "accuracy": 0.7142857142857143
+      },
+      {
+        "bin": 10,
+        "lower": 0.6666666666666666,
+        "upper": 0.7333333333333333,
+        "count": 94,
+        "mean_confidence": 0.7006178035380992,
+        "accuracy": 0.6808510638297872
+      },
+      {
+        "bin": 11,
+        "lower": 0.7333333333333333,
+        "upper": 0.8,
+        "count": 41,
+        "mean_confidence": 0.7634870729795317,
+        "accuracy": 0.7073170731707317
+      },
+      {
+        "bin": 12,
+        "lower": 0.8,
+        "upper": 0.8666666666666667,
+        "count": 27,
+        "mean_confidence": 0.8288087138423214,
+        "accuracy": 0.9259259259259259
+      },
+      {
+        "bin": 13,
+        "lower": 0.8666666666666667,
+        "upper": 0.9333333333333333,
+        "count": 27,
+        "mean_confidence": 0.898862772517734,
+        "accuracy": 0.8148148148148148
+      },
+      {
+        "bin": 14,
+        "lower": 0.9333333333333333,
+        "upper": 1.0,
+        "count": 14,
+        "mean_confidence": 0.9434028693607875,
+        "accuracy": 0.9285714285714286
+      }
+    ],
+    "risk_coverage": [
+      {
+        "threshold": 0.0,
+        "coverage": 1.0,
+        "accuracy": 0.2867596615595701
+      },
+      {
+        "threshold": 0.5,
+        "coverage": 0.09512920192087812,
+        "accuracy": 0.6899038461538461
+      },
+      {
+        "threshold": 0.6,
+        "coverage": 0.06563000228675966,
+        "accuracy": 0.7421602787456446
+      },
+      {
+        "threshold": 0.7,
+        "coverage": 0.03521609878801738,
+        "accuracy": 0.8051948051948052
+      },
+      {
+        "threshold": 0.8,
+        "coverage": 0.015549965698605077,
+        "accuracy": 0.8823529411764706
+      },
+      {
+        "threshold": 0.9,
+        "coverage": 0.006174251086210839,
+        "accuracy": 0.9259259259259259
+      },
+      {
+        "threshold": 0.95,
+        "coverage": 0.000686027898467871,
+        "accuracy": 1.0
+      }
+    ],
+    "median_seconds": 0.0003422499867156148
+  },
+  "by_family": {
+    "next_click": {
+      "rows": 4373,
+      "top1": 0.2867596615595701,
+      "top3": 0.4701577864166476,
+      "balanced_accuracy": 0.29313748615498364,
+      "macro_f1": 0.28946493772948645,
+      "nll": 2.8204948399311376,
+      "brier": 0.8494425806724557,
+      "ece": 0.03409648164271925,
+      "mce": 0.11876672574843478,
+      "mean_confidence": 0.25587122964042563,
+      "mean_entropy": 2.749650874574452,
+      "uniform_baseline": 0.03617956399064065,
+      "majority_baseline": 0.03750285844957695,
+      "median_seconds": 0.0003422499867156148
+    }
+  },
+  "intervals": [
+    {
+      "metric": "top1",
+      "groups": 314,
+      "resamples": 500,
+      "low": 0.2629793895121315,
+      "high": 0.3142215874311365
+    },
+    {
+      "metric": "balanced_accuracy",
+      "groups": 314,
+      "resamples": 500,
+      "low": 0.2660251688936538,
+      "high": 0.3265786389765318
+    }
+  ],
+  "controls": {
+    "shuffled_state": {
+      "rows": 4373,
+      "top1": 0.27212439972558883,
+      "top3": 0.4374571232563458,
+      "balanced_accuracy": 0.27650992170560434,
+      "macro_f1": 0.2728985991777894,
+      "nll": 2.9422239232919036,
+      "brier": 0.870268974451176,
+      "ece": 0.03748255126133966,
+      "mce": 0.24204065118517193,
+      "mean_confidence": 0.24539481654461653,
+      "mean_entropy": 2.7977952112680358,
+      "uniform_baseline": 0.03617956399064065,
+      "majority_baseline": 0.03750285844957695,
+      "median_seconds": 0.0003434999962337315
+    },
+    "shuffled_question": {
+      "rows": 4373,
+      "top1": 0.06380059455751201,
+      "top3": 0.16693345529384862,
+      "balanced_accuracy": 0.050667881293083694,
+      "macro_f1": 0.05063424460524025,
+      "nll": 3.9171007285544506,
+      "brier": 1.0046494097717018,
+      "ece": 0.14280277677604464,
+      "mce": 0.633931577205658,
+      "mean_confidence": 0.20658524304359177,
+      "mean_entropy": 2.922218894893071,
+      "uniform_baseline": 0.03617956399064065,
+      "majority_baseline": 0.03750285844957695,
+      "median_seconds": 0.00034691597102209926
+    }
+  },
+  "perturbations": {
+    "reversed_options": {
+      "rows": 4373,
+      "argmax_flip_rate": 0.0,
+      "mean_total_variation": 5.144780076473136e-08,
+      "accuracy_before": 0.2867596615595701,
+      "accuracy_after": 0.2867596615595701
+    },
+    "irrelevant_suffix": {
+      "rows": 4373,
+      "argmax_flip_rate": 0.22798993825748914,
+      "mean_total_variation": 0.11817635567376068,
+      "accuracy_before": 0.2867596615595701,
+      "accuracy_after": 0.29499199634118456
+    },
+    "note": "The suffix is appended and the harness clips to the model's byte limit, so on a state already at the limit the perturbation degrades to a no-op rather than to a truncation of the original evidence."
+  },
+  "predictions_path": "results/predictions/tiny-wikispeedia-s17.jsonl",
+  "predictions_sha256": "8b3593a7146dd929db20d858d95fd1f49615f0fcce8c91fa343c64e8290a5bb6"
+}

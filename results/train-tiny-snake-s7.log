@@ -1,0 +1,92 @@
+{"epoch": 1, "train_nll": 0.4602752283941798, "validation_nll": 0.30536606907844543, "validation_top1": 0.7842259407043457, "fake_quant": false}
+{"epoch": 2, "train_nll": 0.3058139200070325, "validation_nll": 0.3023483455181122, "validation_top1": 0.7888755202293396, "fake_quant": false}
+{"epoch": 3, "train_nll": 0.30735072103869016, "validation_nll": 0.3031952381134033, "validation_top1": 0.7931806445121765, "fake_quant": false}
+{"epoch": 4, "train_nll": 0.29910324722778897, "validation_nll": 0.3081381022930145, "validation_top1": 0.7938694953918457, "fake_quant": false}
+{"epoch": 5, "train_nll": 0.29477820234138424, "validation_nll": 0.2932962477207184, "validation_top1": 0.7893921136856079, "fake_quant": false}
+{"epoch": 6, "train_nll": 0.2934435265955805, "validation_nll": 0.2931898832321167, "validation_top1": 0.7862924337387085, "fake_quant": true}
+{"epoch": 7, "train_nll": 0.2920217874470879, "validation_nll": 0.29339563846588135, "validation_top1": 0.7893921136856079, "fake_quant": true}
+{"epoch": 8, "train_nll": 0.29054569735246544, "validation_nll": 0.2940870225429535, "validation_top1": 0.7924917936325073, "fake_quant": true}
+{
+  "preset": "tiny",
+  "checkpoint": "artifacts/blink-tiny-snake-s7.pt",
+  "derived_limits": null,
+  "limits": {
+    "max_state": 256,
+    "max_question": 128,
+    "max_option": 48
+  },
+  "coverage": {
+    "train": {
+      "rows": 47600,
+      "unclipped": 47600,
+      "fraction": 1.0
+    },
+    "validation": {
+      "rows": 5807,
+      "unclipped": 5807,
+      "fraction": 1.0
+    }
+  },
+  "ablations": [],
+  "config": {
+    "name": "blink-tiny",
+    "width": 64,
+    "blocks": 2,
+    "ffn_width": 128,
+    "rank": 64,
+    "heads": 2,
+    "conv_width": 5,
+    "stride": 4,
+    "mixer_blocks": 1,
+    "film": true,
+    "cross": true,
+    "bigram_buckets": 4096,
+    "max_state": 256,
+    "max_question": 128,
+    "max_option": 48,
+    "temperature": 1.0
+  },
+  "device": "mps",
+  "seed": 7,
+  "train_rows": 47600,
+  "validation_rows": 5807,
+  "best_epoch": 6,
+  "best_validation_nll": 0.2931898832321167,
+  "temperature": 0.9116630852219992,
+  "temperature_pinned": false,
+  "train_seconds": 296.6050716249738,
+  "export": {
+    "path": "artifacts/blink-tiny-snake-s7.blink",
+    "bytes": 467904,
+    "parameters": 406913,
+    "bytes_per_parameter": 1.1498870765986833,
+    "temperature": 0.9116630852219992,
+    "quantized_tensors": [
+      "block0.fc1",
+      "block0.fc2",
+      "block0.glob",
+      "block1.fc1",
+      "block1.fc2",
+      "block1.glob",
+      "block1.mix.k",
+      "block1.mix.o",
+      "block1.mix.q",
+      "block1.mix.v",
+      "cross.k",
+      "cross.o",
+      "cross.q",
+      "cross.v",
+      "emb.bigram",
+      "emb.pos_option",
+      "emb.pos_question",
+      "emb.pos_state",
+      "emb.unigram",
+      "head.k",
+      "head.q",
+      "head.v",
+      "stem.proj"
+    ],
+    "max_relative_quantization_error": 0.003936256427530561,
+    "worst_tensor": "cross.q"
+  }
+}

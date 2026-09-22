@@ -1,0 +1,51 @@
+# Build output
+build/
+build-accelerate/
+build-w8a8/
+
+# Python environment and caches
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Corpora. The synthetic splits regenerate byte-identically from their seed,
+# and WANLI and the imported fixtures carry their own terms, so none of them
+# belong in this tree. data/*/manifest.json records the checksums.
+data/
+
+# PyTorch checkpoints are large and are not what ships; the .blink container
+# is. Keep the containers and the reports: they are the evidence for every
+# number in docs/RESULTS.md.
+*.pt
+
+# macOS
+.DS_Store
+
+# Superseded containers, reports and queue logs. Kept locally for the record;
+# nothing in docs/ depends on them.
+artifacts/archive/
+results/archive/
+
+# Per-row predictions regenerate from a container and a corpus with
+# eval/evaluate.py; the reports next to them carry every metric quoted.
+results/predictions/
+
+# blink-small is experimental (docs/RESULTS.md §5): 8 MB per container is too
+# much history for weights we do not recommend. `scripts/run_all.sh --small`
+# trains them. External baseline checkpoints are not in our format.
+artifacts/blink-small-*.blink
+artifacts/external/
+
+# scripts/run_all.sh --smoke
+artifacts/smoke/
+results/smoke/
+
+# Written by ViZDoom into the working directory; machine-specific paths.
+_vizdoom.ini
+
+# Local tooling: preview-server configs and per-session state.
+.claude/
+
+# A separate prototype that is not part of Blink.
+examples/sqlite_planner/

@@ -1,0 +1,276 @@
+{
+  "model": {
+    "path": "artifacts/blink-tiny-synthetic-s27.blink",
+    "sha256": "3b9d9c4db6a6ab1977cf85aadcdf089255b83d7e2f9b4f283aa36a49a385d28a",
+    "name": "blink-tiny",
+    "parameters": 406913,
+    "weights_bytes": 463104,
+    "temperature": 1.706942081451416,
+    "max_state": 256,
+    "max_question": 128,
+    "max_option": 48
+  },
+  "data": {
+    "path": "data/fixtures/perturbations108.jsonl",
+    "sha256": "e5482ed79be7858ca7c21c727d99c3a0d9ba2346cefb97b096829d1b5d33a449",
+    "rows": 108,
+    "groups": 36,
+    "clipped_rows": 87,
+    "clipping_note": "inputs longer than the model limits are truncated by the harness; the runtime itself refuses them"
+  },
+  "session_arena_bytes": 251200,
+  "metrics": {
+    "rows": 108,
+    "top1": 0.2962962962962963,
+    "top3": 1.0,
+    "balanced_accuracy": 0.2955223024882468,
+    "macro_f1": 0.28306825542455205,
+    "nll": 2.0027613726435414,
+    "brier": 0.9680349438129033,
+    "ece": 0.43340176205944136,
+    "mce": 0.811782032251358,
+    "mean_confidence": 0.716742673681842,
+    "mean_entropy": 0.6011127268861013,
+    "uniform_baseline": 0.3333333333333333,
+    "majority_baseline": 0.35185185185185186,
+    "calibration_bins": [
+      {
+        "bin": 5,
+        "lower": 0.3333333333333333,
+        "upper": 0.4,
+        "count": 10,
+        "mean_confidence": 0.36416915953159334,
+        "accuracy": 0.4
+      },
+      {
+        "bin": 6,
+        "lower": 0.4,
+        "upper": 0.4666666666666667,
+        "count": 13,
+        "mean_confidence": 0.4419543490960048,
+        "accuracy": 0.3076923076923077
+      },
+      {
+        "bin": 7,
+        "lower": 0.4666666666666667,
+        "upper": 0.5333333333333333,
+        "count": 15,
+        "mean_confidence": 0.49194175203641255,
+        "accuracy": 0.2
+      },
+      {
+        "bin": 8,
+        "lower": 0.5333333333333333,
+        "upper": 0.6,
+        "count": 5,
+        "mean_confidence": 0.5581171631813049,
+        "accuracy": 0.2
+      },
+      {
+        "bin": 9,
+        "lower": 0.6,
+        "upper": 0.6666666666666666,
+        "count": 7,
+        "mean_confidence": 0.6427561470440456,
+        "accuracy": 0.42857142857142855
+      },
+      {
+        "bin": 10,
+        "lower": 0.6666666666666666,
+        "upper": 0.7333333333333333,
+        "count": 3,
+        "mean_confidence": 0.7230686545372009,
+        "accuracy": 0.0
+      },
+      {
+        "bin": 11,
+        "lower": 0.7333333333333333,
+        "upper": 0.8,
+        "count": 6,
+        "mean_confidence": 0.7694383462270101,
+        "accuracy": 0.3333333333333333
+      },
+      {
+        "bin": 12,
+        "lower": 0.8,
+        "upper": 0.8666666666666667,
+        "count": 6,
+        "mean_confidence": 0.811782032251358,
+        "accuracy": 0.0
+      },
+      {
+        "bin": 13,
+        "lower": 0.8666666666666667,
+        "upper": 0.9333333333333333,
+        "count": 3,
+        "mean_confidence": 0.886239210764567,
+        "accuracy": 1.0
+      },
+      {
+        "bin": 14,
+        "lower": 0.9333333333333333,
+        "upper": 1.0,
+        "count": 40,
+        "mean_confidence": 0.9759214907884598,
+        "accuracy": 0.3
+      }
+    ],
+    "risk_coverage": [
+      {
+        "threshold": 0.0,
+        "coverage": 1.0,
+        "accuracy": 0.2962962962962963
+      },
+      {
+        "threshold": 0.5,
+        "coverage": 0.7037037037037037,
+        "accuracy": 0.3026315789473684
+      },
+      {
+        "threshold": 0.6,
+        "coverage": 0.6018518518518519,
+        "accuracy": 0.3076923076923077
+      },
+      {
+        "threshold": 0.7,
+        "coverage": 0.5370370370370371,
+        "accuracy": 0.29310344827586204
+      },
+      {
+        "threshold": 0.8,
+        "coverage": 0.4537037037037037,
+        "accuracy": 0.30612244897959184
+      },
+      {
+        "threshold": 0.9,
+        "coverage": 0.37962962962962965,
+        "accuracy": 0.3170731707317073
+      },
+      {
+        "threshold": 0.95,
+        "coverage": 0.32407407407407407,
+        "accuracy": 0.34285714285714286
+      }
+    ],
+    "median_seconds": 0.0001662920112721622
+  },
+  "by_family": {
+    "candidate_selection": {
+      "rows": 36,
+      "top1": 0.1111111111111111,
+      "top3": 1.0,
+      "balanced_accuracy": 0.2222222222222222,
+      "macro_f1": 0.1214630779848171,
+      "nll": 1.5145469910745737,
+      "brier": 0.894620646738181,
+      "ece": 0.44417313651906115,
+      "mce": 0.9556287527084351,
+      "mean_confidence": 0.5552842476301723,
+      "mean_entropy": 0.8625533187554942,
+      "uniform_baseline": 0.3333333333333333,
+      "majority_baseline": 0.6666666666666666,
+      "median_seconds": 0.00014658295549452305
+    },
+    "evidence_interpretation": {
+      "rows": 36,
+      "top1": 0.3888888888888889,
+      "top3": 1.0,
+      "balanced_accuracy": 0.38699690402476783,
+      "macro_f1": 0.26936026936026936,
+      "nll": 2.583618497846553,
+      "brier": 1.1094057474533225,
+      "ece": 0.5816370555096202,
+      "mce": 0.8134193817774454,
+      "mean_confidence": 0.9019693955779076,
+      "mean_entropy": 0.28446811660089427,
+      "uniform_baseline": 0.3333333333333333,
+      "majority_baseline": 0.5277777777777778,
+      "median_seconds": 0.00013229198521003127
+    },
+    "rule_application": {
+      "rows": 36,
+      "top1": 0.3888888888888889,
+      "top3": 1.0,
+      "balanced_accuracy": 0.3883061383061383,
+      "macro_f1": 0.39091397062411554,
+      "nll": 1.9101186290094958,
+      "brier": 0.9000784372472077,
+      "ece": 0.4244548107186953,
+      "mce": 0.8009240031242371,
+      "mean_confidence": 0.692974377837446,
+      "mean_entropy": 0.6563167453019155,
+      "uniform_baseline": 0.3333333333333333,
+      "majority_baseline": 0.3611111111111111,
+      "median_seconds": 0.00020120799308642745
+    }
+  },
+  "intervals": [
+    {
+      "metric": "top1",
+      "groups": 36,
+      "resamples": 500,
+      "low": 0.17592592592592593,
+      "high": 0.4074074074074074
+    },
+    {
+      "metric": "balanced_accuracy",
+      "groups": 36,
+      "resamples": 500,
+      "low": 0.18915343915343916,
+      "high": 0.39924242424242423
+    }
+  ],
+  "controls": {
+    "shuffled_state": {
+      "rows": 108,
+      "top1": 0.37962962962962965,
+      "top3": 1.0,
+      "balanced_accuracy": 0.3795722967549593,
+      "macro_f1": 0.3666666666666667,
+      "nll": 1.8379764299581238,
+      "brier": 0.8713845770417394,
+      "ece": 0.35218150251441527,
+      "mce": 0.7147365887959798,
+      "mean_confidence": 0.67205632450404,
+      "mean_entropy": 0.6475573575848507,
+      "uniform_baseline": 0.3333333333333333,
+      "majority_baseline": 0.35185185185185186,
+      "median_seconds": 0.00016987498383969069
+    },
+    "shuffled_question": {
+      "rows": 108,
+      "top1": 0.3148148148148148,
+      "top3": 1.0,
+      "balanced_accuracy": 0.3119768375186332,
+      "macro_f1": 0.3052063691598575,
+      "nll": 2.0828085515546597,
+      "brier": 0.9882216316374672,
+      "ece": 0.4209398500345371,
+      "mce": 0.6807740330696106,
+      "mean_confidence": 0.7209390859912943,
+      "mean_entropy": 0.5887207343777711,
+      "uniform_baseline": 0.3333333333333333,
+      "majority_baseline": 0.35185185185185186,
+      "median_seconds": 0.00017070799367502332
+    }
+  },
+  "perturbations": {
+    "reversed_options": {
+      "rows": 108,
+      "argmax_flip_rate": 0.0,
+      "mean_total_variation": 1.1741795552316708e-08,
+      "accuracy_before": 0.2962962962962963,
+      "accuracy_after": 0.2962962962962963
+    },
+    "irrelevant_suffix": {
+      "rows": 108,
+      "argmax_flip_rate": 0.21296296296296297,
+      "mean_total_variation": 0.16599092045187178,
+      "accuracy_before": 0.2962962962962963,
+      "accuracy_after": 0.3055555555555556
+    },
+    "note": "The suffix is appended and the harness clips to the model's byte limit, so on a state already at the limit the perturbation degrades to a no-op rather than to a truncation of the original evidence."
+  },
+  "predictions_path": "results/predictions/tiny-synthetic-s27-perturbations108.jsonl",
+  "predictions_sha256": "75580477cee400ce5c60215b394c2922a97db911b392efafe991b1d54a15d4e1"
+}

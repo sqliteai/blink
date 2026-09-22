@@ -1,0 +1,90 @@
+name: pages
+
+# Publishes the browser demos to GitHub Pages:
+#
+#   /                  BlinkPilot, one self-contained HTML file (make pilot)
+#   /examples/snake/   Blink plays Snake
+#   /examples/doom/    Blink plays Doom
+#   /examples/pilot/   BlinkPilot, the unbundled page
+#
+# scripts/build_site.sh assembles it, locally as here, and fails if any file a
+# page loads is missing from the site.
+#
+# Everything runs client-side in WebAssembly; Pages only serves static files.
+# Enable it once under Settings -> Pages -> Source: GitHub Actions.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  WASI_SDK: "25"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # wasi-sdk bundles clang, wasm-ld, the sysroot and the compiler-rt
+      # builtins, so WASI_RT stays empty and clang finds them itself.
+      - name: install wasi-sdk
+        run: |
+          curl -fsSL -o wasi-sdk.tar.gz \
+            "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK}/wasi-sdk-${WASI_SDK}.0-x86_64-linux.tar.gz"
+          mkdir -p "$RUNNER_TEMP/wasi-sdk"
+          tar -xzf wasi-sdk.tar.gz -C "$RUNNER_TEMP/wasi-sdk" --strip-components=1
+          echo "SDK=$RUNNER_TEMP/wasi-sdk" >> "$GITHUB_ENV"
+
+      - name: build the wasm runtime
+        run: |
+          make wasm WASM_CC="$SDK/bin/clang" WASM_LD="$SDK/bin/wasm-ld" \
+               WASI_SYSROOT="$SDK/share/wasi-sysroot" WASI_RT=
+
+      # The published module must compute what the native runtime computes.
+      - name: wasm against native
+        run: |
+          make
+          make test-wasm WASM_CC="$SDK/bin/clang" WASM_LD="$SDK/bin/wasm-ld" \
+               WASI_SYSROOT="$SDK/share/wasi-sysroot" WASI_RT=
+
+      # The published models still play, headless, through the same wasm.
+      - name: the published models still play
+        run: |
+          node examples/pilot/drive.mjs artifacts/blink-tiny-pilot-s7.blink --trips 2
+          node examples/snake/play.mjs artifacts/blink-tiny-snake-s7.blink --games 2
+          node examples/doom/play.mjs artifacts/blink-tiny-doom-s7.blink --episodes 4
+
+      - name: assemble the site
+        run: |
+          bash scripts/build_site.sh site
+          ls -lR site
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

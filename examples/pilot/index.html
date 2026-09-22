@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BlinkPilot</title>
+<!--
+  BlinkPilot: Blink drives the Interstate 08 trip in the browser, through
+  build/wasm/blink.wasm. Serve the repository root and open this page:
+
+    make wasm && python3 -m http.server 8000
+    open http://localhost:8000/examples/pilot/?model=../../artifacts/blink-tiny-pilot-s7.blink
+
+  SPDX-License-Identifier: Apache-2.0
+-->
+<style>
+  :root {
+    --bg: #f4f3ef; --panel: #ffffff; --ink: #1c1c1a; --muted: #6b6a64;
+    --line: #e2e0d8; --bar: #3f7cff; --pick: #0fa3c8; --bad: #e0512f;
+    --warn: #c98700; --code: #f1f0ea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #131412; --panel: #1c1d1a; --ink: #ecebe6; --muted: #9a998f;
+      --line: #2d2e29; --bar: #6b9bff; --pick: #34d1ff; --bad: #ff7a59;
+      --warn: #ffb020; --code: #232420;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 1320px; margin: 0 auto; padding: 20px 16px 36px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-bottom: 14px; }
+  h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0; max-width: 880px; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
+  @media (max-width: 960px) { .layout { grid-template-columns: 1fr; } }
+  .stage { position: relative; }
+  canvas { width: 100%; height: min(74vh, 760px); min-height: 360px; border-radius: 12px; display: block; background: #5d8a4a; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  .panel + .panel { margin-top: 10px; }
+  .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 6px; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .stat b { display: block; font-size: 19px; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 11px; color: var(--muted); }
+  .opt { display: grid; grid-template-columns: 54px 1fr 50px; gap: 4px 8px; align-items: center; margin: 7px 0; font-variant-numeric: tabular-nums; }
+  .opt .name { font-weight: 600; }
+  .opt .why { grid-column: 2 / 4; font-size: 12px; color: var(--muted); margin-top: -3px; }
+  .opt .why.bad { color: var(--bad); }
+  .opt .why.warn { color: var(--warn); }
+  .track { height: 9px; background: var(--line); border-radius: 5px; overflow: hidden; }
+  .fill { height: 100%; background: var(--bar); width: 0; transition: width 90ms linear; }
+  .opt.pick .name { color: var(--pick); }
+  .opt.pick .fill { background: var(--pick); }
+  .opt .p { text-align: right; }
+  .state { font-size: 13px; background: var(--code); border-radius: 8px; padding: 8px 10px; min-height: 4.5em; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+  button, select {
+    font: inherit; padding: 6px 11px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  }
+  button.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  kbd { font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; }
+  .meta { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .keys { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.9; }
+  details summary { cursor: pointer; font-size: 12px; color: var(--muted); }
+  pre { font-size: 11.5px; background: var(--code); border-radius: 8px; padding: 8px 10px; overflow-x: auto; margin: 8px 0 0; }
+  .error { color: var(--bad); white-space: pre-wrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend i { display: inline-block; width: 18px; height: 4px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>BlinkPilot</h1>
+    <p class="sub">Millbrook → on-ramp → Interstate 08 → Exit 14 → Cedar Town. Every decision is one
+      <code>blink_score</code> call in WebAssembly: the planner rolls six maneuvers three seconds ahead and
+      says what each would lead to; the model picks one.</p>
+  </header>
+  <div class="layout">
+    <div class="stage">
+      <canvas id="view" tabindex="0" aria-label="Top-down view of the car and the road"></canvas>
+      <div class="controls">
+        <button id="auto" class="on" title="J">Autopilot</button>
+        <select id="policy" aria-label="Policy">
+          <option value="blink">Blink (wasm)</option>
+          <option value="oracle">Oracle (rules)</option>
+        </select>
+        <button id="cands" class="on" title="C">Candidates</button>
+        <select id="rate" aria-label="Simulation speed">
+          <option value="1">1×</option><option value="2">2×</option><option value="4">4×</option>
+        </select>
+        <select id="density" aria-label="Traffic">
+          <option value="0.5">Light traffic</option>
+          <option value="1" selected>Normal traffic</option>
+          <option value="1.4">Heavy traffic</option>
+        </select>
+        <button id="pause" title="P">Pause</button>
+        <button id="restart" title="R">Restart</button>
+      </div>
+      <div class="legend">
+        <span><i style="background:#9ff7ff"></i>chosen</span>
+        <span><i style="background:#34d1ff"></i>best</span>
+        <span><i style="background:#5b8cff"></i>safe, slower</span>
+        <span><i style="background:#ffb020"></i>close / too fast / off route</span>
+        <span><i style="background:#ff5a36"></i>illegal / cut-off / crash</span>
+        <span><i style="background:#b06bff"></i>no lane</span>
+      </div>
+      <div class="keys"><kbd>J</kbd> autopilot · <kbd>W</kbd><kbd>S</kbd> throttle and brake · <kbd>A</kbd><kbd>D</kbd> change lane ·
+        <kbd>Space</kbd> brake · <kbd>C</kbd> candidates · <kbd>P</kbd> pause · <kbd>R</kbd> restart. Driving by hand turns the autopilot off;
+        the model keeps scoring so you can compare.</div>
+    </div>
+    <div>
+      <div class="panel">
+        <div class="stats">
+          <div class="stat"><b id="clock">0:00</b><span>trip</span></div>
+          <div class="stat"><b id="crashes">0</b><span>crashes</span></div>
+          <div class="stat"><b id="violations">0</b><span>violations</span></div>
+          <div class="stat"><b id="agree">–</b><span>agrees w/ oracle</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="label">Maneuvers · probability · planner outcome</div>
+        <div id="bars"></div>
+        <div id="timing" class="meta"></div>
+      </div>
+      <div class="panel">
+        <div class="label">State sent to the model</div>
+        <div id="state" class="state"></div>
+        <div class="label" style="margin-top:10px">Question</div>
+        <div id="question" style="font-size:13px"></div>
+        <details style="margin-top:10px">
+          <summary>Situation (local, never sent to the model)</summary>
+          <pre id="json"></pre>
+        </details>
+      </div>
+      <div id="meta" class="meta"></div>
+    </div>
+  </div>
+</main>
+<script type="module">
+import { loadBlink } from "../../wasm/blink.mjs";
+import {
+  DECISION_S, OPTIONS, QUESTION, World, best, describe, laneKind, limitAt, oracle, rng,
+} from "./world.mjs";
+import { Renderer } from "./render.mjs";
+
+const params = new URLSearchParams(location.search);
+const MODEL = params.get("model") ?? "../../artifacts/blink-tiny-pilot-s7.blink";
+const WASM = params.get("wasm") ?? "../../build/wasm/blink.wasm";
+const STEP = 1 / 60;
+const START = Number(params.get("start") ?? 8);      /* metres along the route */
+
+const $ = (id) => document.getElementById(id);
+const canvas = $("view");
+const renderer = new Renderer(canvas);
+const ro = new ResizeObserver(() => renderer.resize());
+ro.observe(canvas);
+
+$("question").textContent = QUESTION;
+$("bars").innerHTML = OPTIONS.map((o) =>
+  `<div class="opt" id="row-${o}"><span class="name">${o}</span><div class="track"><div class="fill" id="fill-${o}"></div></div>` +
+  `<span class="p" id="p-${o}">–</span><span class="why" id="why-${o}"></span></div>`).join("");
+
+const PLAIN = {
+  best: "best", wait: "waits", stopline: "stops at the line", stopcar: "stops behind the car",
+  park: "parks", good: "safe, a bit slower", slow: "safe, much slower", idle: "stops for nothing",
+  away: "leaves the route lane", close: "too close", speeding: "too fast", red: "runs the red",
+  sign: "skips the stop sign", dest: "overshoots", laneend: "runs out of lane", exit: "misses the exit",
+  cutoff: "cuts off a car", crash: "crash", nolane: "no lane", oncoming: "oncoming traffic",
+};
+
+let session = null, world, seed = 1, phrases = rng(1);
+let autopilot = true, policy = "blink", candidates = true, paused = false;
+let nextDecision = 0, acc = 0, last = performance.now();
+let view = { outcomes: null, probabilities: null, choice: null };
+let decisions = 0, agreeing = 0, blinkMs = 0, banner = null, arrivedAt = null, seenEvents = 0;
+const keys = new Set();
+
+function restart() {
+  const at = seed === 1 ? START : 8;
+  world = new World({ seed: seed++, density: Number($("density").value), start: at,
+    speed: at > 8 ? limitAt(at) * 0.8 : 0 });
+  phrases = rng(seed * 31);
+  nextDecision = 0; decisions = 0; agreeing = 0; blinkMs = 0;
+  view = { outcomes: null, probabilities: null, choice: null };
+  banner = null; arrivedAt = null; seenEvents = 0;
+  renderer.camH = null;
+}
+
+function decide() {
+  const outcomes = world.plan();
+  const text = describe(outcomes, phrases);
+  let probabilities = null, pick = oracle(outcomes);
+  if (session) {
+    const t0 = performance.now();
+    session.setState(text);
+    const r = session.score(QUESTION);
+    blinkMs += performance.now() - t0;
+    probabilities = Object.fromEntries(OPTIONS.map((o, i) => [o, r.probabilities[i]]));
+    if (policy === "blink") pick = OPTIONS[r.argmax];
+    $("timing").textContent = `state encode + score ${(blinkMs / (decisions + 1)).toFixed(2)} ms avg · ` +
+      `confidence ${r.confidence.toFixed(3)} · margin ${r.margin.toFixed(3)}`;
+  }
+  ++decisions;
+  if (best(outcomes).includes(pick)) ++agreeing;
+  if (autopilot) world.decide(pick);
+  view = { outcomes, probabilities, choice: autopilot ? pick : null, suggestion: pick };
+  $("state").textContent = text;
+  for (const o of OPTIONS) {
+    const out = outcomes[o];
+    const p = probabilities ? probabilities[o] : (o === pick ? 1 : 0);
+    $(`fill-${o}`).style.width = `${(p * 100).toFixed(1)}%`;
+    $(`p-${o}`).textContent = probabilities ? p.toFixed(3) : "–";
+    $(`row-${o}`).classList.toggle("pick", o === pick);
+    const why = $(`why-${o}`);
+    why.textContent = PLAIN[out.phrase] ?? out.phrase;
+    why.className = "why" + (out.rank >= 7 ? " bad" : out.rank >= 4 ? " warn" : "");
+  }
+  $("json").textContent = JSON.stringify(world.snapshot(), null, 1);
+}
+
+function manualInput() {
+  const accel = keys.has(" ") ? -8 : keys.has("s") ? -4 : keys.has("w") ? 2.5 : -0.25;
+  return { accel };
+}
+
+function lane(delta) {
+  const target = world.ego.lane + delta;
+  if (laneKind(world.ego.s + 3, target) !== null) world.ego.lane = target;
+}
+
+function setAuto(on) {
+  autopilot = on;
+  $("auto").classList.toggle("on", on);
+}
+
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000);
+  last = now;
+  if (!paused && world) {
+    acc += dt * Number($("rate").value);
+    while (acc >= STEP) {
+      acc -= STEP;
+      if (world.arrived) break;
+      if (world.t >= nextDecision) { nextDecision += DECISION_S; decide(); }
+      world.step(STEP, autopilot ? null : manualInput());
+    }
+    for (; seenEvents < world.events.length; ++seenEvents) {
+      const e = world.events[seenEvents];
+      if (e.kind === "crash") renderer.flash = 1;
+      if (e.kind === "violation") banner = ["Violation", e.what], setTimeout(() => (banner = null), 1600);
+    }
+    if (world.arrived && arrivedAt === null) {
+      arrivedAt = now;
+      const m = Math.floor(world.t / 60), s = Math.floor(world.t % 60).toString().padStart(2, "0");
+      banner = ["Arrived in Cedar Town", `${m}:${s} · ${world.crashes} crashes · ${world.violations} violations`];
+    }
+    if (arrivedAt !== null && now - arrivedAt > 5000) restart();
+  }
+  if (world) {
+    const m = Math.floor(world.t / 60), s = Math.floor(world.t % 60).toString().padStart(2, "0");
+    $("clock").textContent = `${m}:${s}`;
+    $("crashes").textContent = world.crashes;
+    $("violations").textContent = world.violations;
+    $("agree").textContent = decisions ? `${((agreeing / decisions) * 100).toFixed(1)}%` : "–";
+    renderer.draw(world, { ...view, dt, candidates, autopilot, policy, banner });
+  }
+  requestAnimationFrame(frame);
+}
+
+$("auto").onclick = () => setAuto(!autopilot);
+$("policy").onchange = (e) => (policy = e.target.value);
+$("cands").onclick = () => { candidates = !candidates; $("cands").classList.toggle("on", candidates); };
+$("pause").onclick = () => { paused = !paused; $("pause").textContent = paused ? "Resume" : "Pause"; };
+$("restart").onclick = restart;
+$("density").onchange = restart;
+addEventListener("keydown", (e) => {
+  if (e.target.tagName === "SELECT") return;
+  const k = e.key.toLowerCase();
+  if (k === "j") setAuto(!autopilot);
+  else if (k === "c") $("cands").click();
+  else if (k === "p") $("pause").click();
+  else if (k === "r") restart();
+  else if (["w", "s", " "].includes(k)) { setAuto(false); keys.add(k); e.preventDefault(); }
+  else if (k === "a" && !e.repeat) { setAuto(false); lane(1); }
+  else if (k === "d" && !e.repeat) { setAuto(false); lane(-1); }
+});
+addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
+
+restart();
+requestAnimationFrame(frame);
+
+try {
+  /* bundle.mjs inlines both binaries so the page also works from file://. */
+  const embedded = globalThis.BLINKPILOT_EMBEDDED;
+  const unbase64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  const [blink, bytes] = embedded && !params.has("model")
+    ? [await loadBlink(unbase64(embedded.wasm)), unbase64(embedded.model).buffer]
+    : await Promise.all([
+      loadBlink(WASM),
+      fetch(MODEL).then((r) => {
+        if (!r.ok) throw new Error(`${MODEL}: HTTP ${r.status}`);
+        return r.arrayBuffer();
+      }),
+    ]);
+  const model = blink.openModel(new Uint8Array(bytes));
+  const info = model.info();
+  session = model.createSession({ maxOptions: OPTIONS.length });
+  session.setMenu(OPTIONS);  /* encoded once, reused by every decision */
+  const name = embedded && !params.has("model") ? embedded.name : MODEL.split("/").pop();
+  $("meta").textContent = `${name} · ${info.name} · ${info.parameters.toLocaleString()} parameters · ` +
+    `${(bytes.byteLength / 1024).toFixed(0)} KB weights · blink ${blink.version} (wasm)`;
+} catch (e) {
+  policy = "oracle";
+  $("policy").value = "oracle";
+  $("meta").innerHTML = `<div class="error">Model not loaded, driving with the oracle: ${e.message}\n` +
+    `Train it with the commands in examples/pilot/README.md, or pass ?model=path/to/model.blink</div>`;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+.\" blink(1) -- the Blink command-line tool.
+.\" Keep in step with docs/CLI.md and usage() in tools/blink.c;
+.\" tests/python/test_harness.py checks that every option is in all three.
+.\" SPDX-License-Identifier: Apache-2.0
+.Dd September 22, 2026
+.Dt BLINK 1
+.Os
+.Sh NAME
+.Nm blink
+.Nd score one typed decision with a Blink model
+.Sh SYNOPSIS
+.Nm
+.Ar model.blink
+.Fl -state Ar text
+.Op Fl -question Ar text
+.Fl -option Ar text
+.Fl -option Ar text
+.Op Fl -option Ar text ...
+.Op Fl -no-verify
+.Nm
+.Ar model.blink
+.Fl -info
+.Op Fl -no-verify
+.Nm
+.Fl -version
+.Nm
+.Fl h | -help
+.Sh DESCRIPTION
+.Nm
+answers one question of the form
+.Dq given this state and this criterion, which of these options?
+It opens a
+.Pa .blink
+container, encodes the state, the question and every option in a single
+forward pass, and prints one probability per option as one line of JSON.
+There is no text generation: the options are the only possible answers.
+.Pp
+The probabilities are conditional on the options given and sum to one.
+Text is read as raw bytes, so any encoding works.
+.Sh OPTIONS
+.Bl -tag -width Ds
+.It Fl -state Ar text
+The unstructured state to decide about: a ticket, a log line, a JSON
+document.
+Required for a decision.
+It may be empty only when a question is given, because a decision needs at
+least one byte of context.
+.It Fl -question Ar text
+The criterion, chosen at call time.
+Optional; empty by default.
+.It Fl -option Ar text
+One declared option.
+Give it at least twice and at most 32 times; options are scored in the order
+given.
+An option must not be empty.
+.It Fl -no-verify
+Skip the CRC-32 check of the container when opening it.
+.It Fl -info
+Print the model's geometry as JSON and exit, without scoring anything.
+.It Fl -version
+Print the library version and the numeric backend it runs on this CPU, as in
+.Dl blink 0.1.0 (neon)
+and exit.
+The backend is one of
+.Cm scalar , neon , sse2 , avx2 , accelerate ,
+or, for a W8A8 build,
+.Cm w8a8-scalar , w8a8-sdot , w8a8-i8mm , w8a8-sse2 , w8a8-avx2 .
+.It Fl h , Fl -help
+Print a usage summary on standard output and exit.
+.El
+.Pp
+Each of state, question and option has a byte limit set by the model,
+reported by
+.Fl -info
+as
+.Cm max_state ,
+.Cm max_question
+and
+.Cm max_option .
+Longer input is refused, not truncated.
+.Sh OUTPUT
+A decision prints one JSON object:
+.Bl -tag -width Ds
+.It Cm options
+One object per option, in the order given, with its
+.Cm text
+and its
+.Cm probability .
+.It Cm argmax
+The index of the most probable option, counting from zero.
+.It Cm confidence
+The probability of that option.
+.It Cm margin
+Its probability minus the runner-up's.
+.It Cm entropy
+The entropy of the distribution, in nats.
+.It Cm context_positions
+Pooled positions of state and question the options attended over.
+.It Cm encode_seconds , Cm head_seconds
+Time spent encoding and in the option head.
+.El
+.Pp
+.Fl -info
+prints the model's
+.Cm name ,
+its geometry
+.Pq Cm width , blocks , ffn_width , rank , heads , conv_width , stride , bigram_buckets ,
+its byte limits
+.Pq Cm max_state , max_question , max_option ,
+the calibration
+.Cm temperature ,
+.Cm parameters ,
+.Cm weights_bytes
+and the
+.Cm session_arena_bytes
+a session with 16 options needs.
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev BLINK_X86_SIMD
+On x86-64,
+.Cm scalar , sse2
+or
+.Cm avx2
+forces that kernel instead of the one chosen for the CPU.
+.It Ev BLINK_W8A8_KERNEL
+In a W8A8 build,
+.Cm scalar , sdot , i8mm , sse2
+or
+.Cm avx2
+forces that integer kernel.
+A kernel the CPU or the build lacks is ignored.
+.El
+.Sh EXIT STATUS
+.Bl -tag -width Ds -compact
+.It 0
+Success.
+.It 1
+The model could not be opened, a session could not be created, or the
+decision failed: input over the model's limits, an empty option, or no
+context at all.
+The reason is printed on standard error.
+.It 2
+A usage error: a missing or unknown argument, fewer than two options or more
+than 32.
+.El
+.Sh EXAMPLES
+Route a support ticket:
+.Bd -literal -offset indent
+blink blink-tiny.blink \e
+  --state "The parcel left the depot on Monday and has not arrived." \e
+  --question "Which team should handle this ticket?" \e
+  --option "delivery and logistics" \e
+  --option "billing and payments" \e
+  --option "account access and sign-in"
+.Ed
+.Pp
+Take the answer in a shell script, escalating when the model is unsure:
+.Bd -literal -offset indent
+blink model.blink --state "$ticket" --option refund --option replace |
+  jq -r 'if .confidence < 0.8 then "escalate"
+         else .options[.argmax].text end'
+.Ed
+.Sh SEE ALSO
+The C API in
+.Pa blink.h ,
+and
+.Pa docs/CLI.md
+in the Blink repository,
+.Lk https://github.com/sqliteai/blink .
+For many rows at once, use
+.Pa eval/evaluate.py ,
+which drives the same library and reuses a cached state.

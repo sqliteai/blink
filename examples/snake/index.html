@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blink plays Snake</title>
+<!--
+  Blink plays Snake in the browser, through build/wasm/blink.wasm.
+  Serve the repository root and open this page:
+
+    make wasm && python3 -m http.server 8000
+    open http://localhost:8000/examples/snake/?model=../../artifacts/blink-tiny-snake-s7.blink
+
+  SPDX-License-Identifier: Apache-2.0
+-->
+<style>
+  :root {
+    --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6a64;
+    --line: #e2e0d8; --board: #1f2a24; --cell: #26332c; --snake: #7fd18b;
+    --head: #c6f3cc; --food: #ff7a59; --bar: #3f7cff; --pick: #1f9d55;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151614; --panel: #1e1f1c; --ink: #ecebe6; --muted: #9a998f;
+      --line: #2f302b; --board: #0f1512; --cell: #17201b; --bar: #6b9bff;
+      --pick: #4cc47c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 980px; margin: 0 auto; padding: 24px 16px 40px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
+  @media (max-width: 820px) { .layout { grid-template-columns: 1fr; } }
+  canvas { width: 100%; aspect-ratio: 1; border-radius: 10px; background: var(--board); display: block; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .panel + .panel { margin-top: 12px; }
+  .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 6px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 12px; color: var(--muted); }
+  .state { font-size: 13px; min-height: 5.8em; }
+  .row { display: grid; grid-template-columns: 44px 1fr 58px; gap: 8px; align-items: center; margin: 5px 0; font-variant-numeric: tabular-nums; }
+  .track { height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; }
+  .fill { height: 100%; background: var(--bar); width: 0; transition: width 80ms linear; }
+  .row.pick { font-weight: 600; }
+  .row.pick .fill { background: var(--pick); }
+  .row .p { text-align: right; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+  button {
+    font: inherit; padding: 6px 12px; border-radius: 7px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  }
+  button.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  input[type=range] { flex: 1; min-width: 120px; }
+  .meta { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .error { color: #d33; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Blink plays Snake</h1>
+  <p class="sub">Every move is one <code>blink_score</code> call in WebAssembly: the state text on the right, a fixed question, four options. No rules run in the page; the game only describes what each move would lead to.</p>
+  <div class="layout">
+    <div>
+      <canvas id="board" width="600" height="600"></canvas>
+      <div class="controls">
+        <button id="toggle" class="primary">Pause</button>
+        <button id="step">Step</button>
+        <button id="reset">New game</button>
+        <label for="speed" class="label" style="margin:0">Speed</label>
+        <input id="speed" type="range" min="1" max="60" value="12">
+      </div>
+    </div>
+    <div>
+      <div class="panel">
+        <div class="stats">
+          <div class="stat"><b id="score">0</b><span>food</span></div>
+          <div class="stat"><b id="best">0</b><span>best</span></div>
+          <div class="stat"><b id="games">0</b><span>games</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="label">State sent to the model</div>
+        <div id="state" class="state"></div>
+      </div>
+      <div class="panel">
+        <div class="label">Question</div>
+        <div id="question" class="state" style="min-height:0"></div>
+        <div class="label" style="margin-top:10px">Probabilities</div>
+        <div id="bars"></div>
+        <div id="timing" class="meta"></div>
+      </div>
+      <div id="meta" class="meta"></div>
+    </div>
+  </div>
+</main>
+<script type="module">
+import { loadBlink } from "../../wasm/blink.mjs";
+import { MOVES, QUESTION, Snake } from "./snake.mjs";
+
+const params = new URLSearchParams(location.search);
+const MODEL = params.get("model") ?? "../../artifacts/blink-tiny-snake-s7.blink";
+const WASM = params.get("wasm") ?? "../../build/wasm/blink.wasm";
+const SIZE = Number(params.get("size") ?? 12);
+
+const $ = (id) => document.getElementById(id);
+const canvas = $("board"), ctx = canvas.getContext("2d");
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+$("question").textContent = QUESTION;
+$("bars").innerHTML = MOVES.map((m) =>
+  `<div class="row" id="row-${m}"><span>${m}</span><div class="track"><div class="fill" id="fill-${m}"></div></div><span class="p" id="p-${m}"></span></div>`).join("");
+
+let session, game, running = true, best = 0, games = 0, seed = 1, timer = null;
+let lastEnd = "";
+
+function draw() {
+  const n = game.width, cell = canvas.width / n, pad = Math.max(1, cell * 0.08);
+  ctx.fillStyle = css("--board");
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = css("--cell");
+  for (let y = 0; y < n; ++y)
+    for (let x = 0; x < n; ++x)
+      ctx.fillRect(x * cell + pad, y * cell + pad, cell - 2 * pad, cell - 2 * pad);
+  if (game.food) {
+    ctx.fillStyle = css("--food");
+    ctx.beginPath();
+    ctx.arc((game.food[0] + 0.5) * cell, (game.food[1] + 0.5) * cell, cell * 0.32, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  game.body.forEach(([x, y], i) => {
+    ctx.fillStyle = i ? css("--snake") : css("--head");
+    ctx.fillRect(x * cell + pad, y * cell + pad, cell - 2 * pad, cell - 2 * pad);
+  });
+  if (!game.alive || lastEnd) {
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.fillRect(0, canvas.height / 2 - 34, canvas.width, 68);
+    ctx.fillStyle = "#fff";
+    ctx.font = "600 22px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(`${lastEnd} — ${game.score} food`, canvas.width / 2, canvas.height / 2 + 8);
+  }
+}
+
+function newGame() {
+  game = new Snake({ width: SIZE, height: SIZE, seed: seed++ });
+  lastEnd = "";
+  $("score").textContent = 0;
+}
+
+function turn() {
+  if (!game.alive || lastEnd) {
+    newGame();
+    draw();
+    return;
+  }
+  const text = game.describe();
+  const t0 = performance.now();
+  session.setState(text);
+  const r = session.score(QUESTION);
+  const ms = performance.now() - t0;
+  const move = MOVES[r.argmax];
+
+  $("state").textContent = text;
+  MOVES.forEach((m, i) => {
+    $(`fill-${m}`).style.width = `${(r.probabilities[i] * 100).toFixed(1)}%`;
+    $(`p-${m}`).textContent = r.probabilities[i].toFixed(3);
+    $(`row-${m}`).classList.toggle("pick", i === r.argmax);
+  });
+  $("timing").textContent = `state encode + score: ${ms.toFixed(2)} ms · confidence ${r.confidence.toFixed(3)} · margin ${r.margin.toFixed(3)}`;
+
+  game.step(move);
+  if (game.alive && game.sinceFood > SIZE * SIZE * 2) lastEnd = "Starved";
+  if (!game.alive) lastEnd = game.death === "won" ? "Board filled" : `Died: ${game.death}`;
+  if (lastEnd) {
+    ++games;
+    best = Math.max(best, game.score);
+    $("games").textContent = games;
+    $("best").textContent = best;
+  }
+  $("score").textContent = game.score;
+  draw();
+}
+
+function schedule() {
+  clearTimeout(timer);
+  if (!running) return;
+  const delay = 1000 / Number($("speed").value);
+  timer = setTimeout(() => { turn(); schedule(); }, lastEnd ? Math.max(delay, 900) : delay);
+}
+
+$("toggle").onclick = () => {
+  running = !running;
+  $("toggle").textContent = running ? "Pause" : "Play";
+  schedule();
+};
+$("step").onclick = () => { running = false; $("toggle").textContent = "Play"; clearTimeout(timer); turn(); };
+$("reset").onclick = () => { newGame(); draw(); };
+$("speed").oninput = schedule;
+
+try {
+  const [blink, bytes] = await Promise.all([
+    loadBlink(WASM),
+    fetch(MODEL).then((r) => {
+      if (!r.ok) throw new Error(`${MODEL}: HTTP ${r.status}`);
+      return r.arrayBuffer();
+    }),
+  ]);
+  const model = blink.openModel(new Uint8Array(bytes));
+  const info = model.info();
+  session = model.createSession({ maxOptions: 4 });
+  session.setMenu(MOVES);  /* encoded once, reused by every move */
+  $("meta").textContent = `${MODEL.split("/").pop()} · ${info.name} · ${info.parameters.toLocaleString()} parameters · ` +
+    `${(bytes.byteLength / 1024).toFixed(0)} KB weights · blink ${blink.version} (wasm)`;
+  newGame();
+  draw();
+  schedule();
+} catch (e) {
+  $("meta").innerHTML = `<div class="error">${e.message}</div>`;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+{"epoch": 1, "train_nll": 3.267029498553132, "validation_nll": 3.296182632446289, "validation_top1": 0.12508897483348846, "fake_quant": false}
+{"epoch": 2, "train_nll": 2.820566621535435, "validation_nll": 3.07778263092041, "validation_top1": 0.2532028555870056, "fake_quant": false}
+{"epoch": 3, "train_nll": 2.498635390189915, "validation_nll": 2.9487290382385254, "validation_top1": 0.30266904830932617, "fake_quant": false}
+{"epoch": 4, "train_nll": 2.315466174896653, "validation_nll": 2.8427603244781494, "validation_top1": 0.3120996356010437, "fake_quant": false}
+{"epoch": 5, "train_nll": 2.164096201113722, "validation_nll": 2.8746180534362793, "validation_top1": 0.3153024911880493, "fake_quant": false}
+{"epoch": 6, "train_nll": 2.0477412443104885, "validation_nll": 2.922196388244629, "validation_top1": 0.32224199175834656, "fake_quant": false}
+{"epoch": 7, "train_nll": 1.9480435210630513, "validation_nll": 2.797808885574341, "validation_top1": 0.33202847838401794, "fake_quant": false}
+{"epoch": 8, "train_nll": 1.8607832477604964, "validation_nll": 2.8026278018951416, "validation_top1": 0.3293594419956207, "fake_quant": false}
+{"epoch": 9, "train_nll": 1.780448705296469, "validation_nll": 2.7969892024993896, "validation_top1": 0.33309608697891235, "fake_quant": false}
+{"epoch": 10, "train_nll": 1.7091610654031935, "validation_nll": 2.8061118125915527, "validation_top1": 0.34750890731811523, "fake_quant": false}
+{"epoch": 11, "train_nll": 1.6370694096900076, "validation_nll": 2.918091058731079, "validation_top1": 0.3323843479156494, "fake_quant": false}
+{"epoch": 12, "train_nll": 1.568096592846597, "validation_nll": 2.856924057006836, "validation_top1": 0.33451956510543823, "fake_quant": false}
+{"epoch": 13, "train_nll": 1.4952036864054656, "validation_nll": 2.9239444732666016, "validation_top1": 0.33505338430404663, "fake_quant": false}
+{"epoch": 14, "train_nll": 1.4197536812330729, "validation_nll": 3.0001800060272217, "validation_top1": 0.327046275138855, "fake_quant": false}
+{"epoch": 15, "train_nll": 1.3479265282382795, "validation_nll": 3.0694098472595215, "validation_top1": 0.32010677456855774, "fake_quant": false}
+{"epoch": 16, "train_nll": 1.2721894681417616, "validation_nll": 3.187495231628418, "validation_top1": 0.3209964334964752, "fake_quant": false}
+{"epoch": 17, "train_nll": 1.1983002919239718, "validation_nll": 3.220501184463501, "validation_top1": 0.32277581095695496, "fake_quant": false}
+{"epoch": 18, "train_nll": 1.120454900257407, "validation_nll": 3.35196590423584, "validation_top1": 0.3277580142021179, "fake_quant": false}
+{"epoch": 19, "train_nll": 1.047647409470729, "validation_nll": 3.5623080730438232, "validation_top1": 0.31850534677505493, "fake_quant": false}
+{"epoch": 20, "train_nll": 0.9736147002130909, "validation_nll": 3.807018995285034, "validation_top1": 0.3106761574745178, "fake_quant": false}
+{"epoch": 21, "train_nll": 0.9058745892470373, "validation_nll": 4.017269611358643, "validation_top1": 0.29217082262039185, "fake_quant": false}
+{"epoch": 22, "train_nll": 0.8363111278464023, "validation_nll": 4.267599105834961, "validation_top1": 0.29056939482688904, "fake_quant": true}
+{"epoch": 23, "train_nll": 0.7693613387716648, "validation_nll": 4.50266170501709, "validation_top1": 0.2930605113506317, "fake_quant": true}
+{"epoch": 24, "train_nll": 0.7092679127203093, "validation_nll": 4.852795124053955, "validation_top1": 0.29217082262039185, "fake_quant": true}
+{"epoch": 25, "train_nll": 0.654719943081122, "validation_nll": 5.1916584968566895, "validation_top1": 0.286298930644989, "fake_quant": true}
+{"epoch": 26, "train_nll": 0.607917795070758, "validation_nll": 5.519789695739746, "validation_top1": 0.28807827830314636, "fake_quant": true}
+{"epoch": 27, "train_nll": 0.5696505414798969, "validation_nll": 5.835726261138916, "validation_top1": 0.28238433599472046, "fake_quant": true}
+{"epoch": 28, "train_nll": 0.540008655429588, "validation_nll": 6.007240295410156, "validation_top1": 0.27811387181282043, "fake_quant": true}
+{"epoch": 29, "train_nll": 0.5197528261976518, "validation_nll": 6.109751224517822, "validation_top1": 0.27508896589279175, "fake_quant": true}
+{"epoch": 30, "train_nll": 0.5088958156688865, "validation_nll": 6.130328178405762, "validation_top1": 0.2743772268295288, "fake_quant": true}
+{
+  "preset": "tiny",
+  "checkpoint": "artifacts/blink-tiny-wikispeedia-s17.pt",
+  "derived_limits": {
+    "max_state": 608,
+    "max_question": 164,
+    "max_option": 84
+  },
+  "limits": {
+    "max_state": 608,
+    "max_question": 164,
+    "max_option": 84
+  },
+  "coverage": {
+    "train": {
+      "rows": 41291,
+      "unclipped": 41291,
+      "fraction": 1.0
+    },
+    "validation": {
+      "rows": 5620,
+      "unclipped": 5620,
+      "fraction": 1.0
+    }
+  },
+  "ablations": [],
+  "config": {
+    "name": "blink-tiny",
+    "width": 64,
+    "blocks": 2,
+    "ffn_width": 128,
+    "rank": 64,
+    "heads": 2,
+    "conv_width": 5,
+    "stride": 4,
+    "mixer_blocks": 1,
+    "film": true,
+    "cross": true,
+    "bigram_buckets": 4096,
+    "max_state": 608,
+    "max_question": 164,
+    "max_option": 84,
+    "temperature": 1.0
+  },
+  "device": "mps",
+  "seed": 17,
+  "train_rows": 41291,
+  "validation_rows": 5620,
+  "best_epoch": 22,
+  "best_validation_nll": 4.267599105834961,
+  "temperature": 3.0801557302453983,
+  "train_seconds": 2755.056126874988,
+  "export": {
+    "path": "artifacts/blink-tiny-wikispeedia-s17.blink",
+    "bytes": 496832,
+    "parameters": 434049,
+    "bytes_per_parameter": 1.1446449594400632,
+    "temperature": 3.0801557302453983,
+    "quantized_tensors": [
+      "block0.fc1",
+      "block0.fc2",
+      "block0.glob",
+      "block1.fc1",
+      "block1.fc2",
+      "block1.glob",
+      "block1.mix.k",
+      "block1.mix.o",
+      "block1.mix.q",
+      "block1.mix.v",
+      "cross.k",
+      "cross.o",
+      "cross.q",
+      "cross.v",
+      "emb.bigram",
+      "emb.pos_option",
+      "emb.pos_question",
+      "emb.pos_state",
+      "emb.unigram",
+      "head.k",
+      "head.q",
+      "head.v",
+      "stem.proj"
+    ],
+    "max_relative_quantization_error": 0.003930622157963875,
+    "worst_tensor": "emb.unigram"
+  }
+}

@@ -1,0 +1,162 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # The C runtime has no dependencies beyond libc, so this job installs
+  # nothing. It is the fast signal and it must stay that way: if this job ever
+  # needs a package manager, the library has grown a dependency it should not
+  # have.
+  runtime:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        cc: [gcc, clang]
+        exclude:
+          - os: macos-latest
+            cc: gcc
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: build
+        run: make CC=${{ matrix.cc }}
+
+      - name: unit tests
+        run: make CC=${{ matrix.cc }} test
+
+      - name: the scoring path allocates nothing
+        run: bash tests/c/check_no_malloc.sh
+
+      - name: examples
+        run: make CC=${{ matrix.cc }} examples
+
+      - name: benchmarks run to completion
+        run: |
+          ./build/bench_memory
+          ./build/bench_latency build/synth-nano.blink
+
+      # make install into a scratch prefix, then build against what it
+      # installed, statically and against the shared library.
+      - name: install
+        run: |
+          prefix="$RUNNER_TEMP/prefix"
+          make CC=${{ matrix.cc }} install PREFIX="$prefix"
+          "$prefix/bin/blink" --version
+          test -f "$prefix/share/man/man1/blink.1"
+          ${{ matrix.cc }} -std=c99 -I"$prefix/include" examples/embed_static.c \
+            "$prefix/lib/libblink.a" -lm -o "$RUNNER_TEMP/embed_static"
+          "$RUNNER_TEMP/embed_static" build/synth-tiny.blink
+          ${{ matrix.cc }} -std=c99 -I"$prefix/include" examples/embed_static.c \
+            -L"$prefix/lib" -lblink -Wl,-rpath,"$prefix/lib" -o "$RUNNER_TEMP/embed_shared"
+          "$RUNNER_TEMP/embed_shared" build/synth-tiny.blink
+          make uninstall PREFIX="$prefix"
+          test -z "$(find "$prefix" -type f -o -type l)"
+
+      # Latency of each x86 SIMD level on a real x86 core; the development
+      # machine could only run them under emulation.
+      - name: x86 SIMD levels
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          for level in scalar sse2 avx2; do
+            echo "== $level"
+            BLINK_X86_SIMD=$level ./build/bench_latency build/synth-tiny.blink | grep '"state_bytes":256'
+          done
+
+      # A different optimisation level must not change what the runtime
+      # computes. -O0 also catches anything that only works because the
+      # optimiser removed it.
+      - name: rebuild at -O0
+        run: |
+          make clean
+          make CC=${{ matrix.cc }} OPT=-O0 test
+
+      # The scalar kernel is the normative definition; the SIMD path must not
+      # be the only one that works.
+      - name: rebuild without SIMD
+        run: |
+          make clean
+          make CC=${{ matrix.cc }} scalar
+          make CC=${{ matrix.cc }} CFLAGS='-std=c99 -O3 -DBLINK_SCALAR_ONLY=1 -Iinclude -Isrc' test
+
+      # The W8A8 backend: SSE2 and AVX2 kernels on x86, SDOT and I8MM on
+      # Apple silicon, each checked against the others in test_kernels.
+      - name: W8A8 backend
+        run: make CC=${{ matrix.cc }} W8A8=1 test
+
+      # The optional macOS backend, in its own build directory.
+      - name: Accelerate backend
+        if: matrix.os == 'macos-latest'
+        run: make CC=clang ACCELERATE=1 test
+
+      - name: sanitised build
+        if: matrix.cc == 'clang'
+        run: |
+          make clean
+          make OPT='-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer' \
+               LDLIBS='-lm -fsanitize=address,undefined' test
+
+  # Parity between the C runtime, the float64 reference and PyTorch. This is
+  # the job that says whether the four implementations of the forward pass
+  # still agree.
+  parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: install
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pytest
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: build the shared library
+        run: make
+
+      - name: parity and harness tests
+        run: PYTHONPATH=python python -m pytest tests/python -q
+
+      # A short end-to-end run: generate data, train briefly, export, and score
+      # the container through the C runtime. It does not check accuracy -- a
+      # three-epoch model has none -- it checks that the pipeline holds
+      # together.
+      - name: end to end
+        run: |
+          export PYTHONPATH=python
+          python scripts/make_data.py --train-groups 400 \
+            --validation-groups 100 --test-groups 100
+          python -m blink_train.train data/synthetic/train.jsonl \
+            --validation data/synthetic/validation.jsonl \
+            --preset nano --output artifacts/ci.blink \
+            --epochs 3 --device cpu --quiet
+          python eval/evaluate.py artifacts/ci.blink data/synthetic/test.jsonl \
+            --json results/ci.json --bootstrap 100
+          python scripts/manifest.py > results/MANIFEST.json
+          python scripts/summarise.py
+
+      - name: the untrained control must not beat chance by much
+        run: |
+          export PYTHONPATH=python
+          python - <<'EOF'
+          import json, subprocess, sys
+          subprocess.run([sys.executable, "eval/evaluate.py",
+                          "build/synth-nano.blink", "data/synthetic/test.jsonl",
+                          "--json", "results/ci-untrained.json",
+                          "--skip-controls", "--bootstrap", "0", "--quiet"],
+                         check=True)
+          report = json.load(open("results/ci-untrained.json"))
+          top1 = report["metrics"]["top1"]
+          uniform = report["metrics"]["uniform_baseline"]
+          print(f"untrained top-1 {top1:.4f} against uniform {uniform:.4f}")
+          # Random weights on a few hundred rows will wobble around chance;
+          # anything far above it means the harness is leaking the label.
+          assert top1 < uniform + 0.15, "untrained weights scored above chance"
+          EOF

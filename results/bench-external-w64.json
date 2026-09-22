@@ -1,0 +1,45 @@
+{
+  "checkpoint": "artifacts/external/external-w64-s7.pt",
+  "config": {
+    "encoder": "tiny",
+    "hf_model": "Qwen/Qwen2.5-0.5B",
+    "width": 64,
+    "rank": 64,
+    "context_tokens": 256,
+    "option_tokens": 48
+  },
+  "parameters": 45376,
+  "weights_bytes_fp32": 181504,
+  "checkpoint_bytes": 185522,
+  "torch": "2.14.0",
+  "threads": 1,
+  "rss_kib_interpreter": 19984,
+  "rss_kib_after_framework_import": 196544,
+  "process_peak_rss_kib": 201104,
+  "latency": [
+    {
+      "model": "external-w64",
+      "path": "decide",
+      "state_bytes": 64,
+      "options": 4,
+      "context_tokens": 256,
+      "samples": 2000,
+      "mean_us": 78.537,
+      "p50_us": 77.958,
+      "p99_us": 100.542,
+      "decisions_per_second": 12732.8
+    },
+    {
+      "model": "external-w64",
+      "path": "decide",
+      "state_bytes": 256,
+      "options": 4,
+      "context_tokens": 256,
+      "samples": 2000,
+      "mean_us": 96.894,
+      "p50_us": 96.167,
+      "p99_us": 112.417,
+      "decisions_per_second": 10320.6
+    }
+  ]
+}

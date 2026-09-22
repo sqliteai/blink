@@ -1,0 +1,217 @@
+{
+  "model": "blink-tiny-doom-s7.blink",
+  "parameters": 406913,
+  "episodes": 128,
+  "results": [
+    {
+      "scenario": "basic",
+      "split": "test",
+      "frameSkip": 4,
+      "maxSteps": 75,
+      "first": 9030000,
+      "policy": "blink",
+      "wins": 128,
+      "episodes": 128,
+      "meanTicksToKill": 25,
+      "teacherAgreement": 0.9955
+    },
+    {
+      "scenario": "basic",
+      "split": "test",
+      "frameSkip": 4,
+      "maxSteps": 75,
+      "first": 9030000,
+      "policy": "blink e=0.1",
+      "wins": 128,
+      "episodes": 128,
+      "meanTicksToKill": 26.4,
+      "teacherAgreement": 0.9106
+    },
+    {
+      "scenario": "basic",
+      "split": "test",
+      "frameSkip": 4,
+      "maxSteps": 75,
+      "first": 9030000,
+      "policy": "teacher",
+      "wins": 128,
+      "episodes": 128,
+      "meanTicksToKill": 24.9,
+      "teacherAgreement": 1
+    },
+    {
+      "scenario": "basic",
+      "split": "test",
+      "frameSkip": 4,
+      "maxSteps": 75,
+      "first": 9030000,
+      "policy": "random",
+      "wins": 69,
+      "episodes": 128,
+      "meanTicksToKill": 86.6,
+      "teacherAgreement": 0.243
+    },
+    {
+      "scenario": "basic",
+      "split": "ood",
+      "frameSkip": 8,
+      "maxSteps": 38,
+      "first": 9040000,
+      "policy": "blink",
+      "wins": 124,
+      "episodes": 128,
+      "meanTicksToKill": 54.2,
+      "teacherAgreement": 0.7252
+    },
+    {
+      "scenario": "basic",
+      "split": "ood",
+      "frameSkip": 8,
+      "maxSteps": 38,
+      "first": 9040000,
+      "policy": "blink e=0.1",
+      "wins": 126,
+      "episodes": 128,
+      "meanTicksToKill": 64.3,
+      "teacherAgreement": 0.6988
+    },
+    {
+      "scenario": "basic",
+      "split": "ood",
+      "frameSkip": 8,
+      "maxSteps": 38,
+      "first": 9040000,
+      "policy": "teacher",
+      "wins": 120,
+      "episodes": 128,
+      "meanTicksToKill": 36.1,
+      "teacherAgreement": 1
+    },
+    {
+      "scenario": "basic",
+      "split": "ood",
+      "frameSkip": 8,
+      "maxSteps": 38,
+      "first": 9040000,
+      "policy": "random",
+      "wins": 64,
+      "episodes": 128,
+      "meanTicksToKill": 100.4,
+      "teacherAgreement": 0.2599
+    },
+    {
+      "scenario": "predict_position",
+      "split": "test",
+      "frameSkip": 4,
+      "maxSteps": 75,
+      "first": 9300640,
+      "policy": "blink",
+      "wins": 39,
+      "episodes": 128,
+      "meanTicksToKill": 68.5,
+      "teacherAgreement": 0.575
+    },
+    {
+      "scenario": "predict_position",
+      "split": "test",
+      "frameSkip": 4,
+      "maxSteps": 75,
+      "first": 9300640,
+      "policy": "blink e=0.1",
+      "wins": 44,
+      "episodes": 128,
+      "meanTicksToKill": 72.7,
+      "teacherAgreement": 0.565
+    },
+    {
+      "scenario": "predict_position",
+      "split": "test",
+      "frameSkip": 4,
+      "maxSteps": 75,
+      "first": 9300640,
+      "policy": "teacher",
+      "wins": 68,
+      "episodes": 128,
+      "meanTicksToKill": 63.6,
+      "teacherAgreement": 1
+    },
+    {
+      "scenario": "predict_position",
+      "split": "test",
+      "frameSkip": 4,
+      "maxSteps": 75,
+      "first": 9300640,
+      "policy": "random",
+      "wins": 6,
+      "episodes": 128,
+      "meanTicksToKill": 42.8,
+      "teacherAgreement": 0.2074
+    },
+    {
+      "scenario": "predict_position",
+      "split": "ood",
+      "frameSkip": 8,
+      "maxSteps": 38,
+      "first": 9300768,
+      "policy": "blink",
+      "wins": 17,
+      "episodes": 128,
+      "meanTicksToKill": 146.3,
+      "teacherAgreement": 0.6668
+    },
+    {
+      "scenario": "predict_position",
+      "split": "ood",
+      "frameSkip": 8,
+      "maxSteps": 38,
+      "first": 9300768,
+      "policy": "blink e=0.1",
+      "wins": 11,
+      "episodes": 128,
+      "meanTicksToKill": 125.6,
+      "teacherAgreement": 0.623
+    },
+    {
+      "scenario": "predict_position",
+      "split": "ood",
+      "frameSkip": 8,
+      "maxSteps": 38,
+      "first": 9300768,
+      "policy": "teacher",
+      "wins": 64,
+      "episodes": 128,
+      "meanTicksToKill": 103.4,
+      "teacherAgreement": 1
+    },
+    {
+      "scenario": "predict_position",
+      "split": "ood",
+      "frameSkip": 8,
+      "maxSteps": 38,
+      "first": 9300768,
+      "policy": "random",
+      "wins": 6,
+      "episodes": 128,
+      "meanTicksToKill": 64,
+      "teacherAgreement": 0.265
+    }
+  ],
+  "published": {
+    "basic/test": {
+      "Jev": 56
+    },
+    "basic/ood": {
+      "Jev": 59
+    },
+    "predict_position/test": {
+      "Jev": 11
+    },
+    "predict_position/ood": {
+      "Jev": 8
+    }
+  },
+  "timingMicroseconds": {
+    "stateSet": 1077.6,
+    "score": 403.1
+  }
+}

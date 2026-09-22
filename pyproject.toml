@@ -1,0 +1,32 @@
+[project]
+name = "blink-train"
+version = "0.1.0"
+description = "Training, export and reference tooling for the Blink C runtime"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+dependencies = ["numpy>=1.24"]
+
+[project.urls]
+Homepage = "https://github.com/sqliteai/blink"
+Repository = "https://github.com/sqliteai/blink"
+Changelog = "https://github.com/sqliteai/blink/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+train = ["torch>=2.2"]
+test = ["pytest>=8", "torch>=2.2"]
+
+[project.scripts]
+blink-train = "blink_train.train:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = { "" = "python" }
+packages = ["blink_train"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/python"]
+addopts = "-q"

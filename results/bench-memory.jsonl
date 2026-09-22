@@ -1,0 +1,4 @@
+{"model":"blink-tiny","sessions":64,"arena_bytes_each":255936,"arena_bytes_total_kib":15996,"rss_kib_before":2304,"rss_kib_with_sessions":18784,"rss_kib_after_free":18800,"rss_growth_kib":16480,"weights_bytes_shared":463044,"note":"growth should track the arenas, not the weights"}
+{"model":"blink-tiny","path":"build/synth-tiny.blink","parameters":406913,"weights_bytes":463044,"bytes_per_parameter":1.138,"arenas":{"minimum":22720,"embedded":132096,"default":266688,"widest":309888}}
+{"model":"blink-small","path":"build/synth-small.blink","parameters":7900033,"weights_bytes":8314372,"bytes_per_parameter":1.052,"arenas":{"minimum":56512,"embedded":307264,"default":1166784,"widest":1257600}}
+{"process_peak_rss_kib":26464,"process_resident_kib":18336}
