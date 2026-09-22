@@ -14,6 +14,7 @@ not pin a run, so `s7`, `s17` and `s27` name three independent runs.
 |---|---|---|
 | `queue_cosine.sh` | blink-tiny and blink-small on the synthetic corpus, cosine head, three runs each (the current headline models) | RESULTS §3, generated |
 | `queue_wanli_sizes.sh` | blink-tiny and blink-small on WANLI, cosine head | RESULTS §3 *External corpora*, and the blink-small note after it |
+| `queue_distill.sh` | blink-tiny and blink-small on WANLI with MiniCPM5-2B's probabilities as targets, α = 1 and 0.5, three runs each; needs `scripts/teacher_label.py` first | RESULTS §3 *Distillation from an LLM teacher* |
 | `queue_section3.sh` | the same set on the previous option head (format 2) | superseded by the two above; its containers are archived |
 | `queue_cross.sh` | three runs with the question-to-state cross layer | RESULTS *`judgment` and question-to-state attention* (previous head) |
 | `queue_seeds.sh` | the FiLM ablation, three runs per arm | RESULTS *The FiLM ablation* (previous head) |

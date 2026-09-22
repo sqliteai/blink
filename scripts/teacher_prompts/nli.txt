@@ -1,0 +1,4 @@
+Decide the relation between the premise (the state) and the hypothesis (in the question).
+- supports: if the premise is true, the hypothesis must also be true.
+- contradicts: if the premise is true, the hypothesis must be false.
+- neither: the premise does not settle whether the hypothesis is true.

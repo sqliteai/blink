@@ -6,6 +6,16 @@ calibration rather than only towards the right argmax. After training, a single
 temperature is fitted on the validation split by minimising validation NLL, and
 that temperature is baked into the container. Calibration is then reported on
 the untouched test split, never on the split it was fitted on.
+
+With `--distill-alpha a` the training loss becomes
+
+    (1 - a) * CE(logits, label) + a * CE(logits, target)
+
+where `target` is a teacher's probability over the options, carried by every
+training row (scripts/teacher_label.py). Everything downstream of the training
+loss still uses the label: checkpoint selection on validation NLL, the
+temperature fit and every metric. At a = 0 the loss is the plain one, term for
+term.
 """
 
 from __future__ import annotations
@@ -26,6 +36,25 @@ from .data import clip
 from .data import Collator, Row, RowDataset, read_jsonl
 from .export import export_model
 from .model import BlinkModel
+
+
+def soft_cross_entropy(logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+    """Mean over rows of -sum_i t_i log p_i. Absent options carry t = 0 and a
+    logit at the dtype's minimum; they are excluded rather than multiplied, so
+    0 * -inf cannot turn the loss into NaN."""
+    log_p = F.log_softmax(logits, dim=-1)
+    terms = torch.where(targets > 0, targets * log_p, torch.zeros_like(log_p))
+    return -terms.sum(dim=-1).mean()
+
+
+def training_loss(logits: torch.Tensor, batch: dict, alpha: float) -> torch.Tensor:
+    gold = F.cross_entropy(logits, batch["labels"])
+    if alpha == 0.0:
+        return gold
+    soft = soft_cross_entropy(logits, batch["targets"])
+    if alpha == 1.0:
+        return soft
+    return (1.0 - alpha) * gold + alpha * soft
 
 
 def select_device(name: str) -> torch.device:
@@ -164,6 +193,10 @@ def build_parser() -> argparse.ArgumentParser:
                         help="fraction of the final epochs trained with "
                              "straight-through int8 rounding")
     parser.add_argument("--max-options", type=int, default=16)
+    parser.add_argument("--distill-alpha", type=float, default=0.0,
+                        help="weight of the teacher-target cross-entropy in the "
+                             "training loss, in [0, 1]; needs a `target` on "
+                             "every training row")
     parser.add_argument("--device", default="auto")
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--quiet", action="store_true")
@@ -184,6 +217,13 @@ def main(argv: list[str] | None = None) -> dict:
 
     train_rows = read_jsonl(args.train)
     validation_rows = read_jsonl(args.validation)
+    if not 0.0 <= args.distill_alpha <= 1.0:
+        raise SystemExit("--distill-alpha must lie in [0, 1]")
+    if args.distill_alpha > 0.0:
+        missing = sum(1 for row in train_rows if row.target is None)
+        if missing:
+            raise SystemExit(f"--distill-alpha needs a target on every training "
+                             f"row; {missing} of {len(train_rows)} have none")
 
     derived = None
     if args.limits_from_data:
@@ -221,7 +261,7 @@ def main(argv: list[str] | None = None) -> dict:
         total, count = 0.0, 0
         for batch in train_loader:
             batch = move(batch, device)
-            loss = F.cross_entropy(model(batch), batch["labels"])
+            loss = training_loss(model(batch), batch, args.distill_alpha)
             optimiser.zero_grad(set_to_none=True)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(parameters, 1.0)
@@ -293,6 +333,7 @@ def main(argv: list[str] | None = None) -> dict:
         "config": config.to_dict(),
         "device": str(device),
         "seed": args.seed,
+        "distill_alpha": args.distill_alpha,
         "train_rows": len(train_rows),
         "validation_rows": len(validation_rows),
         "best_epoch": best["epoch"],

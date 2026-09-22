@@ -518,6 +518,87 @@ blink-tiny's 0.4913, and 0.4467 ± 0.0150 balanced on SemIf's 256 rows against t
 0.4393 — inside tiny's spread. It memorises: final training NLL 0.13 against
 validation 2.86. See §5.
 
+### Distillation from an LLM teacher: no gain
+
+**Does a stronger reader, used as a teacher, make Blink read better?** On
+WANLI, with MiniCPM5-2B as the teacher, no. Both presets get worse as the
+teacher's weight grows.
+
+The teacher is [MiniCPM5-2B](https://huggingface.co/openbmb/MiniCPM5-2B)
+(Apache-2.0, revision `12a3808`), run locally with MLX by
+`scripts/teacher_label.py`. It reads each row with its options lettered and
+gives one probability per option from its next-token distribution after
+"Answer:". Nothing is generated. Three details carry most of its quality:
+
+- Each row is scored under every cyclic rotation of its options and the results
+  are averaged, so the model's preference for some letters falls on every
+  option equally.
+- An NLI preamble (`scripts/teacher_prompts/nli.txt`) and six solved training
+  rows open the prompt.
+- A label-free prior correction divides out the teacher's mean probability per
+  option text.
+
+On 600 validation rows these took the teacher from 0.442 top-1 (NLL 1.37, ECE
+0.32), which is weaker than the student, to 0.590. The prompt was chosen on
+those rows, never on the test split. The labelled corpus's checksums and the
+teacher's scores per split are in `results/teacher-wanli-minicpm5.json`.
+
+| teacher on | rows | top-1 | NLL | ECE |
+|---|---:|---:|---:|---:|
+| train | 36,002 | 0.6029 | 0.956 | 0.086 |
+| validation | 3,998 | 0.5990 | 0.959 | 0.089 |
+| test | 4,945 | 0.5923 | 0.977 | 0.086 |
+
+Training minimises `(1 − α)·CE(label) + α·CE(teacher)` (`--distill-alpha`).
+Everything downstream of the training loss still uses the gold label:
+checkpoint selection, the temperature fit and every metric below. At α = 0 the
+trainer produces a container byte-identical to `main`'s (checked on CPU).
+
+The gold arms are the runs reported above, with the same presets, epochs,
+learning rates and limits. Each arm has three MPS runs, mean ± sd, on the gold
+WANLI test split (4,945 rows, uniform baseline 0.333, majority 0.343).
+`scripts/experiments/queue_distill.sh` ran the distilled arms.
+
+| preset | training target | top-1 | NLL | ECE | shuffled state | shuffled question | SemIf's 256, balanced |
+|---|---|---:|---:|---:|---:|---:|---:|
+| tiny | gold | **0.4913 ± 0.0053** | **0.990** | **0.025** | 0.4260 | 0.4404 | 0.4393 ± 0.0342 |
+| tiny | α = 0.5 | 0.4721 ± 0.0016 | 1.009 | 0.038 | 0.4222 | 0.4158 | 0.4594 ± 0.0173 |
+| tiny | α = 1 | 0.4182 ± 0.0029 | 1.070 | 0.042 | 0.3707 | 0.3419 | 0.4390 ± 0.0327 |
+| small | gold | **0.4736 ± 0.0023** | **1.013** | **0.027** | 0.4191 | 0.4276 | 0.4467 ± 0.0150 |
+| small | α = 0.5 | 0.4661 ± 0.0100 | 1.032 | 0.045 | 0.4198 | 0.4012 | 0.4310 ± 0.0208 |
+| small | α = 1 | 0.4183 ± 0.0063 | 1.072 | 0.039 | 0.3733 | 0.3547 | 0.4442 ± 0.0276 |
+
+What the table and the per-row predictions say:
+
+- **The teacher's weight costs accuracy monotonically.**
+  - Tiny: α = 1 costs 7.3 points and α = 0.5 costs 1.9, both far outside the
+    run-to-run spread.
+  - Small: α = 0.5 is level with gold within its own spread (0.4661 ± 0.0100
+    against 0.4736), and α = 1 costs 5.5 points.
+  - NLL and ECE get worse in every distilled arm.
+  - On SemIf's 256 rows every difference is inside the noise.
+- **The students do not learn to follow the teacher.** A student trained on the
+  teacher alone agrees with the teacher's argmax on 52% of test rows, tiny and
+  small alike. On the 1,903 rows where the teacher is at least 0.7 confident,
+  and right 66% of the time, that student scores 0.489 against the gold
+  student's 0.496 (one run of each, tiny; small's teacher-only run scores
+  0.483). Twenty times the parameters did not change either number.
+- **Where the teacher is unsure, the target teaches nothing.** On the 24% of
+  rows where the teacher's top probability is below 0.5, the teacher-only
+  student falls from 0.48 to 0.36. There the gold label still carried the
+  shallow cues the gold student uses. The shuffled-state control shows those
+  cues leaving: it falls from 0.426 to 0.371, and the margin over it shrinks
+  from 6.5 points to 4.8.
+- **Distillation regularises small without generalising it.** At α = 0.5,
+  small's final training NLL is 0.72–0.86, against 0.13–0.60 for gold. Its best
+  validation NLL does not improve: 0.98 against 0.95–0.97.
+
+The gold label is itself a perfect, hard teacher, and it takes tiny to 0.491.
+A better LLM teacher could at most approach it in correctness. What such a
+teacher adds that gold cannot is volume, meaning labels for text nobody
+annotated. That experiment, a strong teacher labelling several times WANLI's
+size, is the one this result leaves open (§6).
+
 > **Measured on the previous option head.** Everything from here to §4
 > predates the cosine option head (container format 3). Each subsection
 > compares arms trained under the same head, so the comparisons stand, but the
@@ -769,6 +850,10 @@ results page.
   mean is what irrelevant text dilutes; anything that changes the sequence
   length also moves every pooled window boundary. Measure this on your own data
   before trusting the accuracy above.
+- **Distilling an LLM teacher does not help on WANLI.** MiniCPM5-2B's
+  probabilities as training targets cost tiny 1.9 points at α = 0.5 and 7.3 at
+  α = 1, and cost small 0.8 and 5.5. Neither student learns to follow the
+  teacher. See *Distillation from an LLM teacher* in §3.
 - **The model does not transfer.** 0.375 and 0.386 on SemIf's two fixtures
   against a uniform 0.333, and two thirds of their rows are longer than the
   synthetic model's limits. A 400k-parameter byte model learns what it is
@@ -825,7 +910,11 @@ In the order I would do them.
 5. **Pretraining, if Blink is to read.** The WANLI gap to SemIf is not
    capacity (§5). A byte-level encoder pretrained on unlabelled text, then
    distilled into the tiny shape, is the only route this page's evidence
-   points at. It is a different project in cost.
+   points at. It is a different project in cost. Distilling an LLM teacher's
+   probabilities on WANLI's own rows has been tried and does not help (§3,
+   *Distillation from an LLM teacher*). What remains untested is a strong
+   teacher, such as an NLI-trained DeBERTa, labelling several times more text
+   than WANLI has.
 6. **Soften the quantization-aware switch.** Ramping the fake-quantization
    noise in over several epochs, rather than flipping it on at one, would have
    avoided both blow-ups seen above.

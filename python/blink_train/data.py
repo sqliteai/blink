@@ -5,6 +5,14 @@ A row is one JSON object per line:
     {"state": "...", "question": "...",
      "options": ["queue a", "queue b"], "label": 0}
 
+A row may also carry a teacher's probability over its options,
+
+    "target": [0.8, 0.2]
+
+which `train.py --distill-alpha` trains towards (scripts/teacher_label.py
+writes it). The label stays the truth: validation, the calibration temperature
+and every reported metric use the label, never the target.
+
 `options` may also be objects with `id` and `description`, and a `context`
 field is accepted as an alias for `state`. Anything the
 loaders accept is normalised to the shape above before batching.
@@ -30,9 +38,10 @@ class Row:
     label: int
     group: str = ""
     family: str = ""
+    target: tuple[float, ...] | None = None
 
     def payload(self) -> dict:
-        return {
+        payload = {
             "state": self.state,
             "question": self.question,
             "options": list(self.options),
@@ -40,6 +49,30 @@ class Row:
             "group": self.group,
             "family": self.family,
         }
+        if self.target is not None:
+            payload["target"] = list(self.target)
+        return payload
+
+
+def check_target(raw, options: int) -> tuple[float, ...] | None:
+    """A teacher distribution, refused rather than repaired if it is not one:
+    one finite, non-negative value per option, summing to 1 within 1e-4. The
+    tiny remaining error is divided out so the sum is exact."""
+    import math
+
+    if raw is None:
+        return None
+    if not isinstance(raw, list) or len(raw) != options:
+        raise ValueError("target must be a list with one probability per option")
+    if any(isinstance(v, bool) or not isinstance(v, (int, float)) for v in raw):
+        raise ValueError("target values must be numbers")
+    values = [float(v) for v in raw]
+    if any(not math.isfinite(v) or v < 0.0 for v in values):
+        raise ValueError("target values must be finite and non-negative")
+    total = sum(values)
+    if abs(total - 1.0) > 1e-4:
+        raise ValueError(f"target must sum to 1, not {total:.6f}")
+    return tuple(v / total for v in values)
 
 
 def normalise(payload: dict) -> Row:
@@ -74,6 +107,7 @@ def normalise(payload: dict) -> Row:
         label=label,
         group=str(payload.get("group", "")),
         family=str(payload.get("family", "")),
+        target=check_target(payload.get("target"), len(options)),
     )
 
 
@@ -150,7 +184,7 @@ class Collator:
                 option_mask[r, c, :len(item)] = True
                 option_present[r, c] = True
 
-        return {
+        batch_out = {
             "state_ids": torch.from_numpy(state_ids),
             "state_mask": torch.from_numpy(state_mask),
             "question_ids": torch.from_numpy(question_ids),
@@ -160,6 +194,13 @@ class Collator:
             "option_present": torch.from_numpy(option_present),
             "labels": torch.tensor([row.label for row in rows], dtype=torch.long),
         }
+        # Teacher targets, when every row has one; zero on absent options.
+        if rows and all(row.target is not None for row in rows):
+            targets = np.zeros((batch, option_count), dtype=np.float32)
+            for r, row in enumerate(rows):
+                targets[r, :len(row.target)] = row.target
+            batch_out["targets"] = torch.from_numpy(targets)
+        return batch_out
 
 
 class RowDataset:

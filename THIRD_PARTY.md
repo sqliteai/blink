@@ -41,6 +41,24 @@ checksums are recorded in `data/fixtures/manifest.json`. The fixtures are used
 under SemIf's MIT licence and are **not** committed here — the importer needs a
 SemIf checkout.
 
+## Teacher model (branch blink-distilled)
+
+**MiniCPM5-2B — OpenBMB, Apache-2.0.**
+<https://huggingface.co/openbmb/MiniCPM5-2B>
+Pinned to revision `12a3808a956f869c767195e9266b59c4d21d92e2`.
+
+Used only as a teacher for distillation: `scripts/teacher_label.py` runs it
+locally with MLX and records its probability over each row's options as a
+training target. Its weights are downloaded into `artifacts/external/`, which
+is not committed, and nothing from the model is redistributed. The containers
+trained with its targets contain Blink's own weights, trained on those
+probabilities; they are marked as distilled wherever they are reported. The
+labelled corpus is not committed either (it derives from WANLI, see below);
+`results/teacher-wanli-minicpm5.json` records its checksums.
+
+- **MLX and mlx-lm** — MIT. Only in the separate `.venv-teacher` environment
+  that runs the teacher; not a training or runtime dependency.
+
 ## Datasets
 
 **WANLI — CC-BY-4.0.**

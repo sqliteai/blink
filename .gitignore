@@ -5,6 +5,7 @@ build-w8a8/
 
 # Python environment and caches
 .venv/
+.venv-teacher/
 __pycache__/
 *.pyc
 .pytest_cache/

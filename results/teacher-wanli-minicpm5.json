@@ -1,0 +1,82 @@
+{
+  "generator": "scripts/teacher_label.py",
+  "teacher": {
+    "model": "MiniCPM5-2B",
+    "revision": "12a3808a956f869c767195e9266b59c4d21d92e2",
+    "weights_sha256": {
+      "model-00000-of-00001.safetensors": "14fb8e7f0a18d53d1f239773758bf581cee7e456a4523a54622c3a245b64402c"
+    }
+  },
+  "prompt": {
+    "instruction": "Reply with the letter of the correct option only.",
+    "suffix": "Answer:",
+    "thinking": false,
+    "orderings": "every cyclic rotation, averaged",
+    "preamble": "Decide the relation between the premise (the state) and the hypothesis (in the question).\n- supports: if the premise is true, the hypothesis must also be true.\n- contradicts: if the premise is true, the hypothesis must be false.\n- neither: the premise does not settle whether the hypothesis is true.",
+    "shots_per_answer": 2,
+    "prior_correction": true,
+    "example": "Decide the relation between the premise (the state) and the hypothesis (in the question).\n- supports: if the premise is true, the hypothesis must also be true.\n- contradicts: if the premise is true, the hypothesis must be false.\n- neither: the premise does not settle whether the hypothesis is true.\n\nExamples:\n\nState:\nI have made no attempt to predict the future.\n\nQuestion:\nAssess the hypothesis: I think I have no idea what the future will be like.\n\nOptions:\nA. the premise contradicts the hypothesis\nB. the premise neither supports nor contradicts the hypothesis\nC. the premise supports the hypothesis\nAnswer: B\n\nState:\nBut the only reason to buy the book is to read the great short stories.\n\nQuestion:\nAssess the hypothesis: The only reason to buy the book is to read the great stories.\n\nOptions:\nA. the premise supports the hypothesis\nB. the premise neither supports nor contradicts the hypothesis\nC. the premise contradicts the hypothesis\nAnswer: A\n\nState:\nIn a way, this is a sad story.\n\nQuestion:\nAssess the hypothesis: This is a sad story, but not a sad story.\n\nOptions:\nA. the premise contradicts the hypothesis\nB. the premise neither supports nor contradicts the hypothesis\nC. the premise supports the hypothesis\nAnswer: C\n\nState:\nThis project is about more than just putting up a big new building.\n\nQuestion:\nAssess the hypothesis: The project is not about more than just putting up a big new building.\n\nOptions:\nA. the premise neither supports nor contradicts the hypothesis\nB. the premise contradicts the hypothesis\nC. the premise supports the hypothesis\nAnswer: B\n\nState:\nA local politician who was once the most powerful man in the state said, \"We are ready to make a sacrifice.\"\n\nQuestion:\nAssess the hypothesis: The politician was not ready to make a sacrifice.\n\nOptions:\nA. the premise contradicts the hypothesis\nB. the premise supports the hypothesis\nC. the premise neither supports nor contradicts the hypothesis\nAnswer: A\n\nState:\nThe evidence suggests that, in the past, men and women in the same profession were likely to be hired at the same wage.\n\nQuestion:\nAssess the hypothesis: Men and women in the same profession are likely to be hired at the same wage.\n\nOptions:\nA. the premise neither supports nor contradicts the hypothesis\nB. the premise contradicts the hypothesis\nC. the premise supports the hypothesis\nAnswer: A\n\nNow this one.\n\nState:\n<state>\n\nQuestion:\n<question>\n\nOptions:\nA. <option 0>\nB. <option 1>\n\nReply with the letter of the correct option only."
+  },
+  "splits": {
+    "validation": {
+      "source": "data/wanli/validation.jsonl",
+      "source_sha256": "e092e6f1aa37082f0e3cca2f407df82c6f2c5fe76f0d905fd093845b5414196e",
+      "output_sha256": "fc0737150688bf3f57f44ef936a1424423fa3b7771651dac0f48f8f676362cea",
+      "seconds": 198.7,
+      "teacher_vs_gold": {
+        "rows": 3998,
+        "top1": 0.5990495247623812,
+        "nll": 0.9593280646911413,
+        "brier": 0.5573696865935474,
+        "ece": 0.08942356239747545
+      },
+      "teacher_raw_vs_gold": {
+        "rows": 3998,
+        "top1": 0.5745372686343172,
+        "nll": 1.059138201613708,
+        "brier": 0.5999810335190072,
+        "ece": 0.1355256987766647
+      }
+    },
+    "test": {
+      "source": "data/wanli/test.jsonl",
+      "source_sha256": "9a4355dbcee680630e64dea843652a226f1d83d0bf5c406b098f182cfd539bed",
+      "output_sha256": "4356365b627ab9ab00559c47fbbd74a60efcaa3425be070a3ce895a021c504c8",
+      "seconds": 250.9,
+      "teacher_vs_gold": {
+        "rows": 4945,
+        "top1": 0.5923154701718908,
+        "nll": 0.9769165141812768,
+        "brier": 0.566342034306324,
+        "ece": 0.0863980455853276
+      },
+      "teacher_raw_vs_gold": {
+        "rows": 4945,
+        "top1": 0.578159757330637,
+        "nll": 1.064147090715768,
+        "brier": 0.6002137808291654,
+        "ece": 0.14175072316207943
+      }
+    },
+    "train": {
+      "source": "data/wanli/train.jsonl",
+      "source_sha256": "f8e6de785303161f4f9d06258c7cb9676e438772b72699cfe4d512870dfc138b",
+      "output_sha256": "26019aaa2c2ac8cf67831f939aadc468583ae7c9ab01000f8e4f55e3b85379df",
+      "seconds": 1868.1,
+      "teacher_vs_gold": {
+        "rows": 36002,
+        "top1": 0.6029109493917004,
+        "nll": 0.9555030501666646,
+        "brier": 0.5551277424595743,
+        "ece": 0.08605340418741515
+      },
+      "teacher_raw_vs_gold": {
+        "rows": 36002,
+        "top1": 0.5836897950113883,
+        "nll": 1.0494917966103867,
+        "brier": 0.5948159743675073,
+        "ece": 0.1405235469772807
+      }
+    }
+  }
+}

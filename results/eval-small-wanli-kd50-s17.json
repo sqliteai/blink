@@ -1,0 +1,220 @@
+{
+  "model": {
+    "path": "artifacts/blink-small-wanli-kd50-s17.blink",
+    "sha256": "0676b281b8ad9fc031dada36ad6265c33ff3815292f664faa0eddfa95357071c",
+    "name": "blink-small",
+    "parameters": 7933825,
+    "weights_bytes": 8348992,
+    "temperature": 2.769097089767456,
+    "max_state": 552,
+    "max_question": 328,
+    "max_option": 64
+  },
+  "data": {
+    "path": "data/wanli/test.jsonl",
+    "sha256": "9a4355dbcee680630e64dea843652a226f1d83d0bf5c406b098f182cfd539bed",
+    "rows": 4945,
+    "groups": 4945,
+    "clipped_rows": 0,
+    "clipping_note": "inputs longer than the model limits are truncated by the harness; the runtime itself refuses them"
+  },
+  "session_arena_bytes": 1253184,
+  "metrics": {
+    "rows": 4945,
+    "top1": 0.4770475227502528,
+    "top3": 1.0,
+    "balanced_accuracy": 0.4765460274574312,
+    "macro_f1": 0.4764868136764941,
+    "nll": 1.0356520263009317,
+    "brier": 0.6267011725434972,
+    "ece": 0.045341629030972094,
+    "mce": 0.1668548730954732,
+    "mean_confidence": 0.4611932593541873,
+    "mean_entropy": 1.0418783109397811,
+    "uniform_baseline": 0.3333333333333333,
+    "majority_baseline": 0.34256825075834174,
+    "calibration_bins": [
+      {
+        "bin": 5,
+        "lower": 0.3333333333333333,
+        "upper": 0.4,
+        "count": 1006,
+        "mean_confidence": 0.380460941471589,
+        "accuracy": 0.4165009940357853
+      },
+      {
+        "bin": 6,
+        "lower": 0.4,
+        "upper": 0.4666666666666667,
+        "count": 2060,
+        "mean_confidence": 0.430557984880452,
+        "accuracy": 0.48640776699029126
+      },
+      {
+        "bin": 7,
+        "lower": 0.4666666666666667,
+        "upper": 0.5333333333333333,
+        "count": 1088,
+        "mean_confidence": 0.4952513787566739,
+        "accuracy": 0.49264705882352944
+      },
+      {
+        "bin": 8,
+        "lower": 0.5333333333333333,
+        "upper": 0.6,
+        "count": 470,
+        "mean_confidence": 0.5618385275627704,
+        "accuracy": 0.502127659574468
+      },
+      {
+        "bin": 9,
+        "lower": 0.6,
+        "upper": 0.6666666666666666,
+        "count": 233,
+        "mean_confidence": 0.628549292363834,
+        "accuracy": 0.5107296137339056
+      },
+      {
+        "bin": 10,
+        "lower": 0.6666666666666666,
+        "upper": 0.7333333333333333,
+        "count": 73,
+        "mean_confidence": 0.6874028183009526,
+        "accuracy": 0.5205479452054794
+      },
+      {
+        "bin": 11,
+        "lower": 0.7333333333333333,
+        "upper": 0.8,
+        "count": 15,
+        "mean_confidence": 0.7585008422533671,
+        "accuracy": 0.6
+      }
+    ],
+    "risk_coverage": [
+      {
+        "threshold": 0.0,
+        "coverage": 1.0,
+        "accuracy": 0.4770475227502528
+      },
+      {
+        "threshold": 0.5,
+        "coverage": 0.2455005055611729,
+        "accuracy": 0.49670510708401977
+      },
+      {
+        "threshold": 0.6,
+        "coverage": 0.06491405460060667,
+        "accuracy": 0.5171339563862928
+      },
+      {
+        "threshold": 0.7,
+        "coverage": 0.006268958543983822,
+        "accuracy": 0.6129032258064516
+      },
+      {
+        "threshold": 0.8,
+        "coverage": 0.0,
+        "accuracy": null
+      },
+      {
+        "threshold": 0.9,
+        "coverage": 0.0,
+        "accuracy": null
+      },
+      {
+        "threshold": 0.95,
+        "coverage": 0.0,
+        "accuracy": null
+      }
+    ],
+    "median_seconds": 0.0005119169945828617
+  },
+  "by_family": {
+    "nli": {
+      "rows": 4945,
+      "top1": 0.4770475227502528,
+      "top3": 1.0,
+      "balanced_accuracy": 0.4765460274574312,
+      "macro_f1": 0.4764868136764941,
+      "nll": 1.0356520263009317,
+      "brier": 0.6267011725434972,
+      "ece": 0.045341629030972094,
+      "mce": 0.1668548730954732,
+      "mean_confidence": 0.4611932593541873,
+      "mean_entropy": 1.0418783109397811,
+      "uniform_baseline": 0.3333333333333333,
+      "majority_baseline": 0.34256825075834174,
+      "median_seconds": 0.0005119169945828617
+    }
+  },
+  "intervals": [
+    {
+      "metric": "top1",
+      "groups": 4945,
+      "resamples": 2000,
+      "low": 0.462891809908999,
+      "high": 0.49180990899898885
+    },
+    {
+      "metric": "balanced_accuracy",
+      "groups": 4945,
+      "resamples": 2000,
+      "low": 0.4622866201650943,
+      "high": 0.4912693129813575
+    }
+  ],
+  "controls": {
+    "shuffled_state": {
+      "rows": 4945,
+      "top1": 0.4184024266936299,
+      "top3": 1.0,
+      "balanced_accuracy": 0.41810271999274445,
+      "macro_f1": 0.4181083577998433,
+      "nll": 1.087688269776979,
+      "brier": 0.6608171933210587,
+      "ece": 0.05875918751298116,
+      "mce": 0.5094257220625877,
+      "mean_confidence": 0.45983057577159214,
+      "mean_entropy": 1.042904065159141,
+      "uniform_baseline": 0.3333333333333333,
+      "majority_baseline": 0.34256825075834174,
+      "median_seconds": 0.0005096669774502516
+    },
+    "shuffled_question": {
+      "rows": 4945,
+      "top1": 0.3979777553083923,
+      "top3": 1.0,
+      "balanced_accuracy": 0.3979772792613394,
+      "macro_f1": 0.39796609478793604,
+      "nll": 1.1031108305793362,
+      "brier": 0.6703547063060117,
+      "ece": 0.06337858835052551,
+      "mce": 0.4827520330746969,
+      "mean_confidence": 0.45995881356170853,
+      "mean_entropy": 1.0426108459249908,
+      "uniform_baseline": 0.3333333333333333,
+      "majority_baseline": 0.34256825075834174,
+      "median_seconds": 0.0005088330362923443
+    }
+  },
+  "perturbations": {
+    "reversed_options": {
+      "rows": 4945,
+      "argmax_flip_rate": 0.0,
+      "mean_total_variation": 7.73534495138664e-09,
+      "accuracy_before": 0.4770475227502528,
+      "accuracy_after": 0.4770475227502528
+    },
+    "irrelevant_suffix": {
+      "rows": 4945,
+      "argmax_flip_rate": 0.2770475227502528,
+      "mean_total_variation": 0.08397903413002364,
+      "accuracy_before": 0.4770475227502528,
+      "accuracy_after": 0.44590495449949447
+    },
+    "note": "The suffix is appended and the harness clips to the model's byte limit, so on a state already at the limit the perturbation degrades to a no-op rather than to a truncation of the original evidence."
+  },
+  "predictions_path": "results/predictions/small-wanli-kd50-s17.jsonl",
+  "predictions_sha256": "254f8dd6b3c436da3697bfb41fe348b82b40193fb5e4e1efdc4685e79d164a46"
+}

@@ -1,0 +1,114 @@
+{"epoch": 1, "train_nll": 1.0737716639931285, "validation_nll": 1.0751655101776123, "validation_top1": 0.35017508268356323, "fake_quant": false}
+{"epoch": 2, "train_nll": 1.0455317171962584, "validation_nll": 1.0743324756622314, "validation_top1": 0.38044020533561707, "fake_quant": false}
+{"epoch": 3, "train_nll": 1.036854169062923, "validation_nll": 1.0679702758789062, "validation_top1": 0.39144572615623474, "fake_quant": false}
+{"epoch": 4, "train_nll": 1.0296569071036696, "validation_nll": 1.070764422416687, "validation_top1": 0.3874437212944031, "fake_quant": false}
+{"epoch": 5, "train_nll": 1.0239735549572118, "validation_nll": 1.0646275281906128, "validation_top1": 0.3904452323913574, "fake_quant": false}
+{"epoch": 6, "train_nll": 1.018525254484031, "validation_nll": 1.0780072212219238, "validation_top1": 0.3961980938911438, "fake_quant": false}
+{"epoch": 7, "train_nll": 1.0110407509967212, "validation_nll": 1.0711519718170166, "validation_top1": 0.4082041084766388, "fake_quant": false}
+{"epoch": 8, "train_nll": 1.0043966099226662, "validation_nll": 1.0779380798339844, "validation_top1": 0.4054527282714844, "fake_quant": false}
+{"epoch": 9, "train_nll": 0.9968668845724871, "validation_nll": 1.068703055381775, "validation_top1": 0.4117058515548706, "fake_quant": false}
+{"epoch": 10, "train_nll": 0.9886710348874157, "validation_nll": 1.0771570205688477, "validation_top1": 0.4039519727230072, "fake_quant": false}
+{"epoch": 11, "train_nll": 0.9809139868688745, "validation_nll": 1.0852705240249634, "validation_top1": 0.4089544713497162, "fake_quant": false}
+{"epoch": 12, "train_nll": 0.9712260349460009, "validation_nll": 1.0988980531692505, "validation_top1": 0.4099549651145935, "fake_quant": false}
+{"epoch": 13, "train_nll": 0.9623086938831013, "validation_nll": 1.1234616041183472, "validation_top1": 0.39494746923446655, "fake_quant": false}
+{"epoch": 14, "train_nll": 0.9534847112498239, "validation_nll": 1.1035395860671997, "validation_top1": 0.40945473313331604, "fake_quant": false}
+{"epoch": 15, "train_nll": 0.943730495839071, "validation_nll": 1.112086534500122, "validation_top1": 0.4159579873085022, "fake_quant": false}
+{"epoch": 16, "train_nll": 0.9347036248690207, "validation_nll": 1.1203644275665283, "validation_top1": 0.4289644956588745, "fake_quant": false}
+{"epoch": 17, "train_nll": 0.9259142892922662, "validation_nll": 1.1378145217895508, "validation_top1": 0.4114557206630707, "fake_quant": false}
+{"epoch": 18, "train_nll": 0.9172134551794805, "validation_nll": 1.140790343284607, "validation_top1": 0.41895946860313416, "fake_quant": true}
+{"epoch": 19, "train_nll": 0.909548810323565, "validation_nll": 1.1593552827835083, "validation_top1": 0.41970986127853394, "fake_quant": true}
+{"epoch": 20, "train_nll": 0.9029256191149558, "validation_nll": 1.151790738105774, "validation_top1": 0.4254627227783203, "fake_quant": true}
+{"epoch": 21, "train_nll": 0.8970789659103415, "validation_nll": 1.1758147478103638, "validation_top1": 0.41995999217033386, "fake_quant": true}
+{"epoch": 22, "train_nll": 0.8926854312343734, "validation_nll": 1.1612558364868164, "validation_top1": 0.4222111105918884, "fake_quant": true}
+{"epoch": 23, "train_nll": 0.8895444351463515, "validation_nll": 1.1706892251968384, "validation_top1": 0.4217108488082886, "fake_quant": true}
+{"epoch": 24, "train_nll": 0.8875749462260504, "validation_nll": 1.1724234819412231, "validation_top1": 0.4192095994949341, "fake_quant": true}
+{"epoch": 25, "train_nll": 0.8866210139881842, "validation_nll": 1.172332763671875, "validation_top1": 0.419459730386734, "fake_quant": true}
+{
+  "preset": "tiny",
+  "checkpoint": "artifacts/blink-tiny-wanli-kd100-s17.pt",
+  "derived_limits": {
+    "max_state": 552,
+    "max_question": 328,
+    "max_option": 60
+  },
+  "limits": {
+    "max_state": 552,
+    "max_question": 328,
+    "max_option": 60
+  },
+  "coverage": {
+    "train": {
+      "rows": 36002,
+      "unclipped": 36002,
+      "fraction": 1.0
+    },
+    "validation": {
+      "rows": 3998,
+      "unclipped": 3998,
+      "fraction": 1.0
+    }
+  },
+  "ablations": [],
+  "config": {
+    "name": "blink-tiny",
+    "width": 64,
+    "blocks": 2,
+    "ffn_width": 128,
+    "rank": 64,
+    "heads": 2,
+    "conv_width": 5,
+    "stride": 4,
+    "mixer_blocks": 1,
+    "film": true,
+    "cross": true,
+    "bigram_buckets": 4096,
+    "max_state": 552,
+    "max_question": 328,
+    "max_option": 60,
+    "temperature": 1.0
+  },
+  "device": "mps",
+  "seed": 17,
+  "distill_alpha": 1.0,
+  "train_rows": 36002,
+  "validation_rows": 3998,
+  "best_epoch": 18,
+  "best_validation_nll": 1.140790343284607,
+  "temperature": 2.6813081502893703,
+  "temperature_pinned": false,
+  "train_seconds": 709.7906451660092,
+  "export": {
+    "path": "artifacts/blink-tiny-wanli-kd100-s17.blink",
+    "bytes": 502528,
+    "parameters": 439425,
+    "bytes_per_parameter": 1.1436035728508847,
+    "temperature": 2.6813081502893703,
+    "quantized_tensors": [
+      "block0.fc1",
+      "block0.fc2",
+      "block0.glob",
+      "block1.fc1",
+      "block1.fc2",
+      "block1.glob",
+      "block1.mix.k",
+      "block1.mix.o",
+      "block1.mix.q",
+      "block1.mix.v",
+      "cross.k",
+      "cross.o",
+      "cross.q",
+      "cross.v",
+      "emb.bigram",
+      "emb.pos_option",
+      "emb.pos_question",
+      "emb.pos_state",
+      "emb.unigram",
+      "head.k",
+      "head.q",
+      "head.v",
+      "stem.proj"
+    ],
+    "max_relative_quantization_error": 0.0039343077199194346,
+    "worst_tensor": "cross.o"
+  }
+}
